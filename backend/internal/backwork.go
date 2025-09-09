@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"PoolManagerVM/backend/config"
 	"PoolManagerVM/backend/internal/worker"
+	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
 	"context"
 	"log"
@@ -9,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gorm.io/gorm"
 )
 
 // Backwork is a background loop that monitors admin servers and ensures a minimum number of VMs are running.
@@ -23,45 +26,57 @@ func Backwork(ctx context.Context) {
 			log.Printf("Error : %v", err)
 			return
 		}
+
+		// get all admin VMs
 		var myPool []servers.Server
 		for _, s := range allServers {
 			if s.Metadata["userID"] == "admin" {
 				myPool = append(myPool, s)
 			}
 		}
+
+		var minVM int
+		// if no VMs, create some with config file
 		if len(myPool) == 0 {
 			cfg, err := utils.LoadConfig("config.toml")
 			if err != nil {
 				log.Printf("Error")
 				return
 			}
-			numVM, err := strconv.Atoi(cfg.Metadata["minVM"])
+			minVM, err = strconv.Atoi(cfg.Metadata["minVM"])
 			if err != nil {
 				log.Printf("Error : %v", err)
 			}
-			utils.PendingMu.Lock()
-			if utils.PendingJobs < numVM {
-				for range numVM {
-					worker.AddJob(*worker.CreateJob("base", worker.CreateVMAdmin, nil), false)
-					utils.PendingJobs++
-				}
-			}
-			utils.PendingMu.Unlock()
 		} else {
-			numVM, err := strconv.Atoi(myPool[0].Metadata["minVM"])
+			minVM, err = strconv.Atoi(myPool[0].Metadata["minVM"])
 			if err != nil {
 				log.Printf("Error : %v", err)
 			}
-			utils.PendingMu.Lock()
-			if len(myPool)+utils.PendingJobs < numVM {
-				numToCreate := numVM - (len(myPool) + utils.PendingJobs)
+		}
+
+		err = config.Database.Transaction(func(tx *gorm.DB) error {
+			var pool models.ServerPool
+			if err := tx.FirstOrCreate(&pool, models.ServerPool{ID: "admin"}).Error; err != nil {
+				return err
+			}
+
+			current := len(myPool) + pool.PendingJobs
+			if current < minVM {
+				numToCreate := minVM - current
 				for range numToCreate {
 					worker.AddJob(*worker.CreateJob("base", worker.CreateVMAdmin, nil), false)
-					utils.PendingJobs++
+					pool.PendingJobs++
+				}
+				if err := tx.Model(&pool).Update("pending_jobs", pool.PendingJobs).Error; err != nil {
+					return err
 				}
 			}
-			utils.PendingMu.Unlock()
+			return nil
+		})
+		if err != nil {
+			log.Println("DB error: ", err)
 		}
+
 		select {
 		case <-ctx.Done():
 			log.Println("Backwork stopped")

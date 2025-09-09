@@ -26,8 +26,6 @@ type Job struct {
 	// retryCount int
 }
 
-// var mu sync.Mutex
-
 var HighPriorityJobs chan Job
 var NormalPriorityJobs chan Job
 

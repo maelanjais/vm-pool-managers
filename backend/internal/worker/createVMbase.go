@@ -1,8 +1,8 @@
 package worker
 
 import (
+	"PoolManagerVM/backend/internal/jobs"
 	"PoolManagerVM/backend/models"
-	"PoolManagerVM/backend/utils"
 	"fmt"
 	"log"
 	"time"
@@ -46,9 +46,7 @@ func CreateVMbase(cfg models.Config) error {
 		return fmt.Errorf("failed to create VM : %w", err)
 	}
 
-	utils.PendingMu.Lock()
-	utils.PendingJobs--
-	utils.PendingMu.Unlock()
+	jobs.DecrementPending("admin")
 	log.Printf("[VM] Creating server ID=%s Name=%s\n", server.ID, server.Name)
 
 	// Waiting for server to start
