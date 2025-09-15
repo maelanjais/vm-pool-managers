@@ -15,7 +15,6 @@ import (
 
 func CreateVM(serv models.Server, paramID uint) error {
 
-	models.PrintServer(serv)
 	opts := &clientconfig.ClientOpts{
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
@@ -26,7 +25,7 @@ func CreateVM(serv models.Server, paramID uint) error {
 	}
 
 	createOpts := servers.CreateOpts{
-		Name:      fmt.Sprintf(`%s - %s`, serv.Name, uuid.New().String()),
+		Name:      fmt.Sprintf(`%s-%s`, serv.Name, uuid.New().String()),
 		FlavorRef: serv.FlavorRef,
 		ImageRef:  serv.ImageRef,
 		Metadata:  serv.Metadata,
@@ -44,7 +43,7 @@ func CreateVM(serv models.Server, paramID uint) error {
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
-	DecrementPending(serv.Metadata["serverpool-id"], serv.Metadata["userID"], int(paramID))
+	DecrementPending(paramID)
 	log.Println("[VM] Creating server ID=", server.ID, " , Name=", server.Name)
 
 	for {

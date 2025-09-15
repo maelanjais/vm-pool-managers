@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-
-	"github.com/google/uuid"
 )
 
 type JobType int
@@ -23,8 +21,6 @@ const (
 )
 
 type Job struct {
-	ID   uint64
-	Name string
 	Type JobType
 	Data map[string]string
 	// retryCount int
@@ -33,7 +29,6 @@ type Job struct {
 var (
 	HighPriorityJobs   chan Job
 	NormalPriorityJobs chan Job
-	jobCount           uint64
 )
 
 func LaunchWorkers(numWorkers int, wg *sync.WaitGroup, ctx context.Context) {
@@ -92,7 +87,7 @@ func processJob(workerID int, job Job) {
 		paramID := utils.ParseInt(job.Data["paramID"])
 		fmt.Println("Worker ", workerID, " takes the job of creating a VM")
 		jobs.CreateVM(models.Server{
-			Name:         fmt.Sprintf(`%s-%s`, job.Data["name"], uuid.New().String()),
+			Name:         job.Data["name"],
 			FlavorRef:    job.Data["flavor_ref"],
 			ImageRef:     job.Data["image_ref"],
 			UserID:       job.Data["user_id"],
@@ -104,18 +99,15 @@ func processJob(workerID int, job Job) {
 	}
 }
 
-func CreateJob(name string, JobType JobType, data map[string]string) *Job {
-	jobCount++
+func CreateJob(JobType JobType, data map[string]string) *Job {
 	return &Job{
-		ID:   jobCount,
-		Name: name,
 		Type: JobType,
 		Data: data,
 	}
 }
 
 func AddJob(job Job, highPriority bool) {
-	fmt.Printf("Adding job %d to queue\n", job.ID)
+	fmt.Printf("Adding job to queue\n")
 	if highPriority {
 		HighPriorityJobs <- job
 	} else {
