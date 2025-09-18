@@ -13,5 +13,6 @@ func ServerpoolRoutes(r *gin.Engine) {
 		serverpool.GET("", controllers.GetServerpool)
 		serverpool.POST("", middlewares.AuthMiddleware(), controllers.CreateServerpool)
 		serverpool.DELETE("", middlewares.AuthMiddleware(), controllers.DeleteServerpool)
+		serverpool.GET("mysp", middlewares.AuthMiddleware(), controllers.GetMyServerpools)
 	}
 }

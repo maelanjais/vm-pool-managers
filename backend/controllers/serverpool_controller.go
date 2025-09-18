@@ -5,6 +5,7 @@ import (
 	"PoolManagerVM/backend/internal/worker"
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
+	"log"
 	"net/http"
 	"os"
 
@@ -137,4 +138,34 @@ func DeleteServerpool(c *gin.Context) {
 		"message":    "serverpool deleted",
 		"serverpool": body.Namesp,
 	})
+}
+
+func GetMyServerpools(c *gin.Context) {
+	userID, exist := c.Get("email")
+	if !exist {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+	log.Println("userID:", userID)
+	allsp, err := utils.GetAllServerPool()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve serverpools from Openstack"})
+		return
+	}
+
+	var ressps []gin.H
+
+	for _, sp := range allsp {
+		if sp.UserID == userID {
+			ressps = append(ressps, gin.H{
+				"serverpool_id": sp.ServerpoolID,
+				"image_ref":     sp.ImageRef,
+				"flavor_ref":    sp.FlavorRef,
+				"min_vm":        sp.MinVM,
+				"max_vm":        sp.MaxVM,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"serverpools": ressps})
 }
