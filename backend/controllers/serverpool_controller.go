@@ -169,3 +169,45 @@ func GetMyServerpools(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"serverpools": ressps})
 }
+
+func GetServersInServerpool(c *gin.Context) {
+	userEmail, exist := c.Get("email")
+	if !exist {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	serverpoolID := c.Param("id")
+	if serverpoolID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing serverpool_id"})
+		return
+	}
+
+	allServers, err := utils.GetAllServers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve servers"})
+		return
+	}
+
+	var serversInPool []gin.H
+	for _, s := range allServers {
+		// Si tu utilises models.FromGopherServer pour enrichir avec UserID/ServerpoolID :
+		ms := models.FromGopherServer(s)
+		if ms.UserID == userEmail && ms.ServerpoolID == serverpoolID {
+			serversInPool = append(serversInPool, gin.H{
+				"id":        s.ID,
+				"name":      s.Name,
+				"status":    s.Status,
+				"flavor_id": s.Flavor["id"],
+				"image_id":  s.Image["id"],
+				"addresses": s.Addresses,
+				"created":   s.Created,
+				"updated":   s.Updated,
+				"host_id":   s.HostID,
+				"progress":  s.Progress,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"servers": serversInPool})
+}

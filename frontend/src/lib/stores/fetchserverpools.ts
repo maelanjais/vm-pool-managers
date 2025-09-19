@@ -60,9 +60,29 @@ function createServerpoolStore() {
     }
   }
 
+  async function fetchServersInServerpool(serverpoolId: string) {
+  const token = get(authStore);
+  try {
+    const res = await fetch(`http://localhost:8080/serverpool/mysp/${serverpoolId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!res.ok) {
+      throw new Error("Impossible de récupérer les serveurs du serverpool");
+    }
+    const data = await res.json();
+    return data.servers || [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
   return {
     subscribe,
     fetchServerpools,
+    fetchServersInServerpool,
   };
 }
 
