@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"PoolManagerVM/backend/config"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,8 +47,10 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			userID := claims["user_id"]
-			email := claims["email"]
+			// user_id -> toujours string
+			userID := fmt.Sprintf("%v", claims["user_id"])
+			email := fmt.Sprintf("%v", claims["email"])
+
 			c.Set("user_id", userID)
 			c.Set("email", email)
 		} else {

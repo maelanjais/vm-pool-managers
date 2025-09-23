@@ -5,11 +5,14 @@ import (
 	"PoolManagerVM/backend/internal/worker"
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/utils"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // return a list of all serverpool (might not be useful)
@@ -46,7 +49,12 @@ func CreateServerpool(c *gin.Context) {
 	}
 
 	var body struct {
-		Namesp string `json:"namesp"`
+		Namesp    string   `json:"namesp"`
+		ImageRef  string   `json:"image_ref"`
+		FlavorRef string   `json:"flavor_ref"`
+		Networks  []string `json:"networks"`
+		MinVM     int      `json:"min_vm"`
+		MaxVM     int      `json:"max_vm"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -59,26 +67,26 @@ func CreateServerpool(c *gin.Context) {
 		return
 	}
 
-	// if err:= config.Database.Create(&models.Serverpool{
-	// UserID:       user.Email,
-	// 	ServerpoolID: body.Namesp,
-	// 	ImageRef:     body.ImageRef,
-	// 	FlavorRef:    body.FlavorRef,
-	// 	Networks:     models.JSONStringSlice{body.Networks},
-	// 	MinVM:        body.MinVM,
-	// 	MaxVM:        body.MaxVM,
-	// PendingJobs:  0,
-	// }).Error; err != nil {
 	if err := config.Database.Create(&models.Serverpool{
 		UserID:       user.Email,
 		ServerpoolID: body.Namesp,
-		ImageRef:     os.Getenv("SERVER_IMAGE_REF"),
-		FlavorRef:    os.Getenv("SERVER_FLAVOR_REF"),
-		Networks:     models.JSONStringSlice{os.Getenv("NETWORK_ID")},
-		MinVM:        2,
-		MaxVM:        4,
+		ImageRef:     body.ImageRef,
+		FlavorRef:    body.FlavorRef,
+		Networks:     models.JSONStringSlice(body.Networks),
+		MinVM:        body.MinVM,
+		MaxVM:        body.MaxVM,
 		PendingJobs:  0,
 	}).Error; err != nil {
+		// if err := config.Database.Create(&models.Serverpool{
+		// 	UserID:       user.Email,
+		// 	ServerpoolID: body.Namesp,
+		// 	ImageRef:     os.Getenv("SERVER_IMAGE_REF"),
+		// 	FlavorRef:    os.Getenv("SERVER_FLAVOR_REF"),
+		// 	Networks:     models.JSONStringSlice{os.Getenv("NETWORK_ID")},
+		// 	MinVM:        2,
+		// 	MaxVM:        4,
+		// 	PendingJobs:  0,
+		// }).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot create serverpool"})
 		return
 	}
@@ -146,7 +154,6 @@ func GetMyServerpools(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
 		return
 	}
-	log.Println("userID:", userID)
 	allsp, err := utils.GetAllServerPool()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve serverpools from Openstack"})
@@ -191,15 +198,14 @@ func GetServersInServerpool(c *gin.Context) {
 
 	var serversInPool []gin.H
 	for _, s := range allServers {
-		// Si tu utilises models.FromGopherServer pour enrichir avec UserID/ServerpoolID :
 		ms := models.FromGopherServer(s)
 		if ms.UserID == userEmail && ms.ServerpoolID == serverpoolID {
 			serversInPool = append(serversInPool, gin.H{
 				"id":        s.ID,
 				"name":      s.Name,
 				"status":    s.Status,
-				"flavor_id": s.Flavor["id"],
-				"image_id":  s.Image["id"],
+				"flavor_id": s.Flavor["name"],
+				"image_id":  s.Image["name"],
 				"addresses": s.Addresses,
 				"created":   s.Created,
 				"updated":   s.Updated,
@@ -210,4 +216,81 @@ func GetServersInServerpool(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"servers": serversInPool})
+}
+
+func GetAllImages(ctx *gin.Context) {
+	opts := &clientconfig.ClientOpts{
+		Cloud: os.Getenv("OPTS_CLOUD"),
+	}
+
+	client, err := clientconfig.NewServiceClient(ctx, "image", opts)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	allPages, err := images.List(client, images.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	allImages, err := images.ExtractImages(allPages)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"images": allImages})
+}
+
+func GetallFlavors(ctx *gin.Context) {
+	opts := &clientconfig.ClientOpts{
+		Cloud: os.Getenv("OPTS_CLOUD"),
+	}
+
+	client, err := clientconfig.NewServiceClient(ctx, "compute", opts)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	allPages, err := flavors.ListDetail(client, flavors.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+	allFlavors, err := flavors.ExtractFlavors(allPages)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"flavors": allFlavors})
+}
+
+func GetAllNetworks(ctx *gin.Context) {
+	opts := &clientconfig.ClientOpts{
+		Cloud: os.Getenv("OPTS_CLOUD"),
+	}
+
+	client, err := clientconfig.NewServiceClient(ctx, "network", opts)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	allPages, err := networks.List(client, networks.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	allNets, err := networks.ExtractNetworks(allPages)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "user not connected"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"networks": allNets})
 }
