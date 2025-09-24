@@ -85,6 +85,9 @@ func processJob(workerID int, job models.Job) {
 	case models.CreateVM:
 		jobs.CreateVM(workerID, job)
 
+	case models.AttribVM:
+		jobs.AttribVM(workerID, job)
+
 	case models.DeleteVM:
 		instanceID := job.Data["instance_id"]
 		err := jobs.DeleteVM(instanceID)

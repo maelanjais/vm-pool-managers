@@ -8,6 +8,7 @@ import (
 	"PoolManagerVM/backend/utils"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -54,9 +55,11 @@ func Monitor(c context.Context) {
 func CheckAndCreate() {
 
 	var (
-		servs []models.Server
-		pools []models.Serverpool
+		servs        []models.Server
+		pools        []models.Serverpool
+		servadminmap = make(map[string]bool)
 	)
+
 	res_servs := config.Database.Find(&servs)
 	if res_servs.Error != nil {
 		log.Println(res_servs.Error)
@@ -66,17 +69,37 @@ func CheckAndCreate() {
 		log.Println(res_pools.Error)
 	}
 
+	countadmin := 0
 	for _, p := range pools {
 		count := 0
 		for _, s := range servs {
 			if serverisinpool(p, s) {
 				count++
 			}
+			if s.UserID == "admin" {
+				if !servadminmap[s.ID] {
+					servadminmap[s.ID] = true
+					countadmin++
+				}
+			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
 		for i := 0; i < missing; i++ {
-			worker.AddJob(*worker.CreateJob(models.CreateVM, utils.BuildDataMap(utils.FlatstringSP(p))), false)
-			jobs.IncrementPending(p.ID)
+			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") && p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") && countadmin > 0 && p.UserID != "admin" {
+				worker.AddJob((*worker.CreateJob(models.AttribVM, map[string]string{
+					"ID":            fmt.Sprint(p.ID),
+					"serverpool_id": p.ServerpoolID,
+					"user_id":       p.UserID,
+					"min_vm":        fmt.Sprint(p.MinVM),
+					"max_vm":        fmt.Sprint(p.MaxVM),
+				})), true)
+				countadmin--
+				jobs.IncrementPending(p.ID)
+			} else {
+				log.Println("Creating VM for pool:", p)
+				worker.AddJob(*worker.CreateJob(models.CreateVM, utils.BuildDataMap(utils.FlatstringSP(p))), false)
+				jobs.IncrementPending(p.ID)
+			}
 		}
 	}
 

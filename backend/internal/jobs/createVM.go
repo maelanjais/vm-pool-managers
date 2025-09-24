@@ -94,6 +94,7 @@ func CreateVM(workerID int, job models.Job) error {
 	server, err := servers.Create(context.Background(), client, createOptsExt, nil).Extract()
 	if err != nil {
 		log.Println("failed to create VM:", err)
+		DecrementPending(uint(paramID))
 		return fmt.Errorf("failed to create VM: %w", err)
 	}
 
