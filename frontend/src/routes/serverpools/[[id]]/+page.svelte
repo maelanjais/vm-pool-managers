@@ -5,6 +5,7 @@ import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAll
 import type { ImageOption , FlavorOption , NetworkOption } from '$lib/index';
 import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect } from 'flowbite-svelte';
 import { ChevronDownOutline } from 'flowbite-svelte-icons';
+import { page } from '$app/stores';
 
 // Typage serveur
 interface Server {
@@ -30,6 +31,7 @@ let serverpools;
 $: ({ user, serverpools, error } = $serverpoolStore);
 
 let interval: ReturnType<typeof setInterval>;
+let selectedsp: string = 'Choisissez le serverpool';
 
 onMount(async () => {
   if (!token) {
@@ -38,18 +40,19 @@ onMount(async () => {
   } else {
     serverpoolStore.fetchServerpools();
     interval = setInterval(serverpoolStore.fetchServerpools, 50000);
-
+    loadingServers = true;
+    
     const apiImages = await fetchAllImages();
     images = apiImages
-      .filter(img => img.status === 'active')
-      .map(img => ({
-        value: img.value,
-        name: img.name || img.value,
-        status: img.status,
-        Mindisk: img.Mindisk,
-        Minram: img.Minram
-      }));
-
+    .filter(img => img.status === 'active')
+    .map(img => ({
+      value: img.value,
+      name: img.name || img.value,
+      status: img.status,
+      Mindisk: img.Mindisk,
+      Minram: img.Minram
+    }));
+    
     const apiFlavors = await fetchAllFlavors();
     flavors = apiFlavors.map(flavor => ({
       value: flavor.value,
@@ -59,13 +62,18 @@ onMount(async () => {
       vcpus: flavor.vcpus,
       rxtx_factor: flavor.rxtx_factor
     }));
-
+    
+    
     const apiNetworks = await fetchAllNetworks();
     networks = apiNetworks.map(net => ({
       value: net.value,
       name: net.name || net.value
     }));
+    selectedsp = $page.params.id || 'Choisissez le serverpool';
+    await handleSelectServerpool(selectedsp);
   }
+
+
 });
 
 onDestroy(() => {
@@ -73,7 +81,6 @@ onDestroy(() => {
 });
 
 let servers: Server[] = [];
-let selectedsp: string = 'Choisissez le serverpool';
 
 let loadingServers = false;
 
@@ -167,6 +174,7 @@ function getImageNameById(id: string): string {
 let selectedNetworks: string[] = [];
 let selectedFlavor: string = "";
 let selectedImage: string = "";
+
 </script>
 
 <!-- Dropdown -->
@@ -188,6 +196,7 @@ let selectedImage: string = "";
       {selectedsp}
       <p class="text-sm font-normal">Flavor: {getFlavorNameById(servers[0].flavor.id)}</p>
       <p class="text-sm font-normal">Image: {getImageNameById(servers[0].image.id)}</p>
+      <!-- <p class="text-sm font-normal">Networks: {getNetworkNamesByIds(servers[0].networks)}</p> -->
     </caption>
 
     <TableHead>
@@ -261,7 +270,7 @@ let selectedImage: string = "";
         {/if}
       </Label>
         <span>Réseaux</span>
-        <MultiSelect name="networks" bind:value={selectedNetworks} items={networks} placeholder="Sélectionnez les réseaux" required />
+        <MultiSelect name="networks" bind:value={selectedNetworks} items={networks} placeholder="Sélectionnez les réseaux" required class="bg-gray-200" />
         {#if selectedNetworks.length === 0}
           <p class="text-sm text-gray-500">Aucun réseau sélectionné</p>
         {/if}

@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 )
@@ -80,5 +81,6 @@ func (j JSONStringSlice) ToNetworks() []servers.Network {
 	for _, id := range j {
 		nets = append(nets, servers.Network{UUID: id})
 	}
+	log.Println("j:", j, "nets:", nets)
 	return nets
 }

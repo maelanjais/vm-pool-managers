@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
@@ -31,15 +32,11 @@ func AttribVM(workerID int, job models.Job) error {
 		Cloud: os.Getenv("OPTS_CLOUD"),
 	}
 
-	log.Println("AttribVM job data:", job.Data)
-
 	provider, err := clientconfig.AuthenticatedClient(context.Background(), opts)
 	if err != nil {
 		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
 		return fmt.Errorf("erreur auth OpenStack: %w", err)
 	}
-
-	log.Println("Authenticated with OpenStack")
 
 	// 2. Créer un client Compute (Nova)
 	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
@@ -48,15 +45,11 @@ func AttribVM(workerID int, job models.Job) error {
 		return fmt.Errorf("erreur init ComputeV2: %w", err)
 	}
 
-	log.Println("Compute client created")
-
 	allServers, err := utils.GetAllServers()
 	if err != nil {
 		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
 		return fmt.Errorf("erreur récupération des serveurs: %w", err)
 	}
-
-	log.Println("Total servers retrieved:", len(allServers))
 
 	var target *servers.Server
 	for i := range allServers {
@@ -83,7 +76,15 @@ func AttribVM(workerID int, job models.Job) error {
 		},
 	}
 
-	log.Println("newMetadata:", newMetadata)
+	newUpdateOpts := servers.UpdateOpts{
+		Name: fmt.Sprintf(`%s-%s`, job.Data["serverpool_id"], uuid.New().String()),
+	}
+	_, err = servers.Update(context.Background(), client, target.ID, newUpdateOpts).Extract()
+	if err != nil {
+		log.Println("Failed to update server name:", err)
+		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
+		return fmt.Errorf("erreur mise à jour nom serveur: %w", err)
+	}
 
 	_, err = servers.UpdateMetadata(context.Background(), client, target.ID, newMetadata).Extract()
 	if err != nil {

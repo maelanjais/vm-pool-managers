@@ -28,12 +28,12 @@
 			return;
   		}
 
-	loginSuccess = true;
-	setTimeout(() => {
-    	form.reset();
-		loginModal = false;
-		loginSuccess = false;
-	}, 3000);
+		loginSuccess = true;
+		setTimeout(() => {
+    		form.reset();
+			loginModal = false;
+			loginSuccess = false;
+		}, 3000);
 	}
 
 	// script pour modal createAccount
@@ -81,6 +81,13 @@
 			createAccountError = "Erreur backend";
 			console.log(err);
 		}
+
+		setTimeout(() => {
+			form.reset();
+			createAccountModal = false;
+			createAccountSuccess = false;
+			loginModal = true;
+		}, 3000);
 	}
 </script>
 

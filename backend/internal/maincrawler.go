@@ -85,7 +85,7 @@ func CheckAndCreate() {
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
 		for i := 0; i < missing; i++ {
-			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") && p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") && countadmin > 0 && p.UserID != "admin" {
+			if p.ImageRef == os.Getenv("SERVER_IMAGE_REF") && p.FlavorRef == os.Getenv("SERVER_FLAVOR_REF") && len(p.Networks) == 1 && p.Networks[0] == os.Getenv("NETWORK_ID") && countadmin > 0 && p.UserID != "admin" {
 				worker.AddJob((*worker.CreateJob(models.AttribVM, map[string]string{
 					"ID":            fmt.Sprint(p.ID),
 					"serverpool_id": p.ServerpoolID,
@@ -121,8 +121,6 @@ func CheckAndCreate() {
 			} else {
 				log.Println("Error Database: ", err)
 			}
-		} else {
-			config.Database.Model(&base_p).Updates(base_p)
 		}
 		for i := 0; i < base_p.MinVM; i++ {
 			worker.AddJob(*worker.CreateJob(models.CreateVM, utils.BuildDataMap(utils.FlatstringSP(base_p))), false)

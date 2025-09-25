@@ -95,7 +95,6 @@ function createServerpoolStore() {
         throw new Error("Impossible de récupérer les serveurs du serverpool");
       }
       const data = await res.json();
-      console.log("Data received for servers in serverpool:", data);
       return data.servers || [];
     } catch (err) {
       console.error(err);

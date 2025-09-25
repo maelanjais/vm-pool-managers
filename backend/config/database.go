@@ -104,8 +104,6 @@ func do_sync() {
 				} else {
 					log.Println("Error Database: ", err)
 				}
-			} else {
-				Database.Model(&existed).Updates(p)
 			}
 		}
 		for _, s := range p.ListServ {

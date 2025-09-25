@@ -1,6 +1,6 @@
 <script lang="ts">
   import { authStore, serverpoolStore } from '$lib/index';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Button } from "flowbite-svelte";
 
@@ -14,16 +14,15 @@
 
   let interval: ReturnType<typeof setInterval>;
 
-  // déclenche le fetch automatiquement dès que token existe
-  $: if (token) {
-    serverpoolStore.fetchServerpools();
-    clearInterval(interval);
-    interval = setInterval(serverpoolStore.fetchServerpools, 50000);
-  } else {
-    goto('/'); // redirige si pas connecté
-    clearInterval(interval);
-  }
-
+  onMount(() => {
+    if (token) {
+      serverpoolStore.fetchServerpools();
+      interval = setInterval(serverpoolStore.fetchServerpools, 50000);
+    } else {
+      goto('/'); // redirige si pas connecté
+      clearInterval(interval);
+    }
+  });
   onDestroy(() => {
     clearInterval(interval);
   });
@@ -59,7 +58,7 @@
             <TableBodyCell>{sp.flavor_ref}</TableBodyCell>
             <TableBodyCell>{sp.min_vm}</TableBodyCell>
             <TableBodyCell>{sp.max_vm}</TableBodyCell>
-            <TableBodyCell class="flex justify-center"><Button>Inspect</Button></TableBodyCell>
+            <TableBodyCell class="flex justify-center"><Button onclick={() => goto(`/serverpools/${sp.serverpool_id}`)}>Inspect</Button></TableBodyCell>
           </TableBodyRow>
         {/each}
       </TableBody>
