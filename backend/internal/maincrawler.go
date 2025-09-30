@@ -27,7 +27,7 @@ import (
 //  2. On each tick, calls CheckAndCreate() to inspect server pools and create missing VMs.
 //  3. Stops monitoring if the context is cancelled.
 func Monitor(c context.Context) {
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
 	for {

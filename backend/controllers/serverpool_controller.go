@@ -7,6 +7,7 @@ import (
 	"PoolManagerVM/backend/utils"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
@@ -236,6 +237,61 @@ func GetAllNetworks(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, networks)
+}
+
+type GroupRequest struct {
+	Group string `json:"group"`
+}
+
+func GetGroupeImage(c *gin.Context) {
+	var req GroupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	var images []models.Image
+	if err := config.Database.Find(&images).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch images"})
+		return
+	}
+
+	var filtered []models.Image
+	for _, img := range images {
+		named := strings.ToLower(utils.FirstLetters(img.Name))
+		if named == strings.ToLower(req.Group) {
+			filtered = append(filtered, img)
+		}
+	}
+
+	c.JSON(http.StatusOK, filtered)
+}
+
+type GroupeImageName struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+func GetGroupeImagename(c *gin.Context) {
+	groupMap := make(map[string][]string)
+	var images []models.Image
+
+	if err := config.Database.Find(&images).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch images"})
+		return
+	}
+
+	for _, img := range images {
+		named := strings.ToLower(utils.FirstLetters(img.Name))
+		groupMap[named] = append(groupMap[named], img.Name)
+	}
+
+	var groupList []GroupeImageName
+	for k := range groupMap {
+		groupList = append(groupList, GroupeImageName{Name: k, Value: k})
+	}
+
+	c.JSON(http.StatusOK, groupList)
 }
 
 type RebuildRequest struct {

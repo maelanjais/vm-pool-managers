@@ -1,8 +1,8 @@
 <script lang="ts">
 import { onDestroy, onMount } from 'svelte';
 import { goto } from '$app/navigation';
-import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer } from '$lib/index';
-import type { ImageOption , FlavorOption , NetworkOption } from '$lib/index';
+import { authStore, serverpoolStore, createServerpool , fetchAllImages, fetchAllFlavors , fetchAllNetworks, deleteServerpool, rebuildServer, fetchGroupImages , fetchGroupImageName } from '$lib/index';
+import type { ImageOption , FlavorOption , NetworkOption , ImageGroupe, GroupedImageOption , GroupeImageName} from '$lib/index';
 import { Button, Dropdown, DropdownItem, Table, TableBody, TableHead, TableBodyCell, TableBodyRow, TableHeadCell, Modal , Label, Input, Select , MultiSelect } from 'flowbite-svelte';
 import { ChevronDownOutline } from 'flowbite-svelte-icons';
 import { page } from '$app/stores';
@@ -32,6 +32,7 @@ $: ({ user, serverpools, error } = $serverpoolStore);
 
 let interval: ReturnType<typeof setInterval>;
 let selectedsp: string = 'Choisissez le serverpool';
+let groupimagename: GroupeImageName[] = [];
 
 onMount(async () => {
   if (!token) {
@@ -70,7 +71,9 @@ onMount(async () => {
       name: net.name || net.value
     }));
 
-    
+    const apiGroupImageName = await fetchGroupImageName();
+    groupimagename = apiGroupImageName;
+
     selectedsp = $page.params.id || 'Choisissez le serverpool';
     await handleSelectServerpool(selectedsp);
   }
@@ -189,6 +192,21 @@ function getImageNameById(id: string): string {
 let selectedNetworks: string[] = [];
 let selectedFlavor: string = "";
 let selectedImage: string = "";
+let selectedGroupImage: string = "";
+
+$: if (selectedGroupImage) {
+  fetchGroupImages(selectedGroupImage).then(data => {
+    images = data;
+    selectedImage = '';
+  });
+}
+
+$: if (!createspModal){
+  selectedFlavor = "";
+  selectedGroupImage = "";
+  selectedImage = "";
+  selectedNetworks = [];
+}
 
 </script>
 
@@ -272,8 +290,9 @@ let selectedImage: string = "";
       </Label>
       <Label class="space-y-2 text-xl">
         <span>Image Ref</span>
-        <Select name="image_ref" items={images} required bind:value={selectedImage} />
-        {#if selectedImage}
+        <Select name="image_group" items={groupimagename} required bind:value={selectedGroupImage} />
+        {#if selectedGroupImage}
+          <Select name="image_ref" items={images} required bind:value={selectedImage} />
           {#each images.filter(img => img.value === selectedImage) as img}
             <p>Status: {img.status}</p>
             <p>Min Disk: {img.Mindisk} GB</p>

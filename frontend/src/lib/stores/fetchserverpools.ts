@@ -41,6 +41,21 @@ export interface ImageOption {
   Minram: number;
 }
 
+export type ImageGroupe = Record<string, ImageOption[]>;
+export interface GroupedImageOption {
+  group: string;   // la clé du groupe, ex: "sl" ou "ubuntu"
+  value: string;   // l’ID de l’image
+  name: string;
+  status: string;
+  Mindisk: number;
+  Minram: number;
+}
+
+export interface GroupeImageName {
+  name: string;
+  value: string;
+}
+
 export interface FlavorOption {
   value: string;
   name: string;
@@ -277,7 +292,63 @@ async function rebuildServer(serverId: string, serverName: string, imageId: stri
   } 
 }
 
+async function fetchGroupImages(group :string): Promise<ImageOption[]> {
+  const token = get(authStore); // récupère le token
+
+  try {
+    const res = await fetch('http://localhost:8080/serverpool/imagegroup', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({group})
+    });
+
+    if (!res.ok) {
+      throw new Error("Impossible de récupérer les images du groupe");
+    }
+
+    const data = await res.json();
+    return data.map((img: any) => ({
+      value: img.id,
+      name: img.name || img.id,
+      status: img.status,
+      Mindisk: img.min_disk,
+      Minram: img.min_ram
+    }));
+  } catch (err){
+    console.error(err);
+    return [];
+  }
+}
+
+
+
+async function fetchGroupImageName(): Promise<GroupeImageName[]> {
+  const token = get(authStore);
+
+  try {
+    const res = await fetch(`http://localhost:8080/serverpool/groupimagesname`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Impossible de récupérer les images groupées");
+    }
+
+    const data: GroupeImageName[] = await res.json();
+    return data;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
 // Exports
 
-export { createServerpool, fetchAllImages, fetchAllFlavors, fetchAllNetworks, deleteServerpool, rebuildServer };
+export { createServerpool, fetchAllImages, fetchAllFlavors, fetchAllNetworks, deleteServerpool, rebuildServer , fetchGroupImages , fetchGroupImageName};
 export const serverpoolStore = createServerpoolStore();

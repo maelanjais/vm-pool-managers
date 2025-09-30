@@ -19,5 +19,7 @@ func ServerpoolRoutes(r *gin.Engine) {
 		serverpool.GET("flavor", middlewares.AuthMiddleware(), controllers.GetallFlavors)
 		serverpool.GET("networks", middlewares.AuthMiddleware(), controllers.GetAllNetworks)
 		serverpool.POST("rebuild", middlewares.AuthMiddleware(), controllers.RebuildServer)
+		serverpool.POST("imagegroup", middlewares.AuthMiddleware(), controllers.GetGroupeImage)
+		serverpool.GET("groupimagesname", middlewares.AuthMiddleware(), controllers.GetGroupeImagename)
 	}
 }
