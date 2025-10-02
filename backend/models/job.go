@@ -7,6 +7,7 @@ const (
 	DeleteVM
 	AttribVM
 	CreateVolumeAndAttach
+	DeleteVolume
 )
 
 type Job struct {

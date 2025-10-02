@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"gorm.io/gorm"
 )
 
@@ -40,6 +41,7 @@ func Monitor(c context.Context) {
 			log.Println("Checking serverpools...")
 			CheckAndCreate()
 			attachVolume()
+			volnotattached()
 		}
 	}
 }
@@ -218,4 +220,33 @@ func attachVolume() {
 			}), false)
 		}
 	}
+}
+
+func volnotattached() {
+	allVol := utils.GetAllVolumes(context.Background())
+	if allVol == nil {
+		log.Println("Failed to get all volumes")
+		return
+	}
+	for _, vol := range allVol {
+		if len(vol.Attachments) == 0 && vol.Status == "available" && !servstillinuse(vol) {
+			worker.AddJob(*worker.CreateJob(models.DeleteVolume, map[string]string{
+				"instance_id": vol.ID,
+			}), false)
+		}
+	}
+}
+
+func servstillinuse(v volumes.Volume) bool {
+	allserv, err := utils.GetAllServers()
+	if err != nil {
+		log.Println("Failed to get all servers:", err)
+		return true
+	}
+	for _, serv := range allserv {
+		if v.Metadata["instance_id"] == serv.ID {
+			return true
+		}
+	}
+	return false
 }

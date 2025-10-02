@@ -6,13 +6,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/google/uuid"
-	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 type MetadataUpdate struct {
@@ -28,22 +24,6 @@ func (m MetadataUpdate) ToMetadataUpdateMap() (map[string]any, error) {
 func AttribVM(workerID int, job models.Job) error {
 
 	fmt.Println("Worker ", workerID, " takes the job of attributing a VM")
-	opts := &clientconfig.ClientOpts{
-		Cloud: os.Getenv("OPTS_CLOUD"),
-	}
-
-	provider, err := clientconfig.AuthenticatedClient(context.Background(), opts)
-	if err != nil {
-		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
-		return fmt.Errorf("erreur auth OpenStack: %w", err)
-	}
-
-	// 2. Créer un client Compute (Nova)
-	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
-	if err != nil {
-		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
-		return fmt.Errorf("erreur init ComputeV2: %w", err)
-	}
 
 	allServers, err := utils.GetAllServers()
 	if err != nil {
@@ -79,14 +59,14 @@ func AttribVM(workerID int, job models.Job) error {
 	newUpdateOpts := servers.UpdateOpts{
 		Name: fmt.Sprintf(`%s-%s`, job.Data["serverpool_id"], uuid.New().String()),
 	}
-	_, err = servers.Update(context.Background(), client, target.ID, newUpdateOpts).Extract()
+	_, err = servers.Update(context.Background(), models.ComputeClient, target.ID, newUpdateOpts).Extract()
 	if err != nil {
 		log.Println("Failed to update server name:", err)
 		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
 		return fmt.Errorf("erreur mise à jour nom serveur: %w", err)
 	}
 
-	_, err = servers.UpdateMetadata(context.Background(), client, target.ID, newMetadata).Extract()
+	_, err = servers.UpdateMetadata(context.Background(), models.ComputeClient, target.ID, newMetadata).Extract()
 	if err != nil {
 		log.Println("Failed to update server metadata:", err)
 		DecrementPending(uint(utils.ParseInt(job.Data["ID"])))

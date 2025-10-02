@@ -1,12 +1,11 @@
 package jobs
 
 import (
+	"PoolManagerVM/backend/models"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 )
 
 // DeleteVM deletes an existing virtual machine (VM) from OpenStack.
@@ -25,23 +24,9 @@ import (
 //   - error: An error if the client setup fails or the VM deletion request fails.
 //     Returns nil if the VM is successfully deleted.
 func DeleteVM(instanceID string) error {
-	cloudName := os.Getenv("OPTS_CLOUD")
-	if cloudName == "" {
-		return fmt.Errorf("OPTS_CLOUD environment variable not set")
-	}
-
-	opts := &clientconfig.ClientOpts{
-		Cloud: cloudName,
-	}
-
-	// Crée un provider client à partir du clouds.yaml
-	provider, err := clientconfig.NewServiceClient(context.Background(), "compute", opts)
-	if err != nil {
-		return fmt.Errorf("failed to create provider client: %w", err)
-	}
 
 	// Supprime la VM
-	err = servers.Delete(context.Background(), provider, instanceID).ExtractErr()
+	err := servers.Delete(context.Background(), models.ComputeClient, instanceID).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("failed to delete VM %s: %w", instanceID, err)
 	}

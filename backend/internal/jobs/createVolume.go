@@ -22,6 +22,9 @@ func CreateVolumeAndAttach(workerID int, job models.Job) error {
 		Description: job.Data["description"],
 		Name:        job.Data["name"],
 		VolumeType:  job.Data["volume_type"],
+		Metadata: map[string]string{
+			"instance_id": job.Data["server_id"],
+		},
 	}
 
 	volumeSchedulerHintOpts := volumes.SchedulerHintOpts{}
@@ -65,6 +68,7 @@ func CreateVolumeAndAttach(workerID int, job models.Job) error {
 	if err != nil {
 		log.Println("error :", err)
 		ChangePendingVol(job.Data["server_id"])
+		DeleteVolume(newVolume.ID)
 		return err
 	}
 
