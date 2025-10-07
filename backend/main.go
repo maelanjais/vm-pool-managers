@@ -45,6 +45,7 @@ func main() {
 	routes.UserRoutes(r)
 	routes.ServerpoolRoutes(r)
 	routes.LoginRoutes(r)
+	routes.WebSocketRoutes(r)
 
 	//preparing workers
 	var wg sync.WaitGroup

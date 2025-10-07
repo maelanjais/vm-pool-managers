@@ -26,14 +26,19 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
-			c.Abort()
-			return
+			// Fallback pour WebSocket (si token dans l’URL)
+			tokenQuery := c.Query("token")
+			if tokenQuery != "" {
+				authHeader = "Bearer " + tokenQuery
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header missing"})
+				c.Abort()
+				return
+			}
 		}
-
 		tokenString := authHeader[len("Bearer "):]
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
@@ -47,7 +52,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			// user_id -> toujours string
 			userID := fmt.Sprintf("%v", claims["user_id"])
 			email := fmt.Sprintf("%v", claims["email"])
 
@@ -58,6 +62,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
 		c.Next()
 	}
 }

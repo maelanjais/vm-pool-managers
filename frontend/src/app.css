@@ -13,7 +13,7 @@
   --color-primary-200: #9bafbb;
   --color-primary-300: #688798;
   --color-primary-400: #365075;
-  --color-primary-500: #1B3C53; /* ta couleur */
+  --color-primary-500: #1B3C53;
   --color-primary-600: #173448;
   --color-primary-700: #122a3a;
   --color-primary-800: #0d1f2b;
@@ -25,7 +25,7 @@
   --color-secondary-200: #9fb7c6;
   --color-secondary-300: #6f93aa;
   --color-secondary-400: #406f8d;
-  --color-secondary-500: #234C6A; /* ta couleur */
+  --color-secondary-500: #234C6A;
   --color-secondary-600: #1d3f58;
   --color-secondary-700: #173146;
   --color-secondary-800: #112434;
@@ -37,20 +37,19 @@
   --color-tertiary-200: #b3bfc9;
   --color-tertiary-300: #8d9fae;
   --color-tertiary-400: #677f92;
-  --color-tertiary-500: #456882; /* ta couleur */
+  --color-tertiary-500: #456882;
   --color-tertiary-600: #3a576e;
   --color-tertiary-700: #2e4659;
   --color-tertiary-800: #233545;
   --color-tertiary-900: #17242f;
 
   /* Option */
-  /* Option - Vert menthe / Turquoise clair */
   --color-option-50: #E6FCF2;
   --color-option-100: #CFF9E6;
   --color-option-200: #9CF3CC;
   --color-option-300: #69EDB2;
   --color-option-400: #3DE699;
-  --color-option-500: #3ECF8E; /* couleur principale */
+  --color-option-500: #3ECF8E;
   --color-option-600: #35B877;
   --color-option-700: #2C9F62;
   --color-option-800: #23764C;

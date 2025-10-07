@@ -30,7 +30,6 @@ $: token = $authStore;
 let serverpools;
 $: ({ user, serverpools, error } = $serverpoolStore);
 
-let interval: ReturnType<typeof setInterval>;
 let selectedsp: string = 'Choisissez le serverpool';
 let groupimagename: GroupeImageName[] = [];
 
@@ -39,10 +38,6 @@ onMount(async () => {
     goto('/'); 
     return;
   } else {
-    serverpoolStore.fetchServerpools();
-    interval = setInterval(serverpoolStore.fetchServerpools, 50000);
-    loadingServers = true;
-    
     const apiFlavors = await fetchAllFlavors();
     flavors = apiFlavors.map(flavor => ({
       value: flavor.value,
@@ -70,10 +65,6 @@ onMount(async () => {
 
 });
 
-onDestroy(() => {
-  clearInterval(interval);
-});
-
 let servers: Server[] = [];
 
 let loadingServers = false;
@@ -87,7 +78,7 @@ const handleClick = async (e: Event) => {
 
 async function handleSelectServerpool(serverpoolId: string) {
   loadingServers = true;
-  servers = await serverpoolStore.fetchServersInServerpool(serverpoolId);
+  servers = $serverpoolStore.servers[serverpoolId] || [];
   loadingServers = false;
 }
 

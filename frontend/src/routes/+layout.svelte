@@ -1,11 +1,24 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import {authStore, tryLogin, logout } from '$lib/index'
+	import logo from '$lib/assets/IDCS.png'
+	import { authStore, tryLogin, logout , serverpoolStore } from '$lib/index'
 	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button} from 'flowbite-svelte';
 	import { Modal, Label, Input, Checkbox } from 'flowbite-svelte'
 
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	
 	let { children } = $props();
+
+	onMount(() => {
+		const token = get(authStore);
+		if (token) {
+			serverpoolStore.fetchInitData();
+		} else {
+			serverpoolStore.reset();
+		}
+	});
 
 	// script pour modal login
 	let loginModal = $state(false);
@@ -100,7 +113,7 @@
 <div class="min-h-screen bg-primary-500">
 	<Navbar class=" sticky start-0 top-0 z-20 w-ful bg-tertiary-500 backdrop-blur-md shadow-md rounded-b-2xl">
 		<NavBrand href="/">
-			<img src="src/lib/assets/IDCS.png" class="me-3 h-6 sm:h-9" alt="ICDS Logo" />
+			<img src={logo} class="me-3 h-6 sm:h-9" alt="ICDS Logo" />
 			<span class="self-center text-xl font-semibold whitespace-nowrap text-gray-300 dark:text-white">CloudPoolManager</span>
 		</NavBrand>
 	<div class="flex md:order-2 gap-2">

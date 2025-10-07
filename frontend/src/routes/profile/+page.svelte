@@ -1,6 +1,5 @@
 <script lang="ts">
   import { authStore, serverpoolStore } from '$lib/index';
-  import { onDestroy, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Button } from "flowbite-svelte";
 
@@ -12,20 +11,6 @@
   let error;
   $: ({ user, serverpools, error } = $serverpoolStore);
 
-  let interval: ReturnType<typeof setInterval>;
-
-  onMount(() => {
-    if (token) {
-      serverpoolStore.fetchServerpools();
-      interval = setInterval(serverpoolStore.fetchServerpools, 50000);
-    } else {
-      goto('/'); // redirige si pas connecté
-      clearInterval(interval);
-    }
-  });
-  onDestroy(() => {
-    clearInterval(interval);
-  });
 </script>
 
 <Table shadow hoverable={true} class="w-full text-tertiary-50">
@@ -34,7 +19,6 @@
   {:else}
     <caption class="text-2xl text-left font-bold mb-4 pl-4">
       Profil de l'utilisateur
-      <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>ID :</strong> {user?.id}</p>
       <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Nom :</strong> {user?.name}</p>
       <p class="mt-1 text-sm font-normal text-gray-300 dark:text-gray-400"><strong>Email :</strong> {user?.email}</p>
     </caption>

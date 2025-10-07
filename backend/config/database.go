@@ -182,6 +182,7 @@ func Sync_DB(ctx context.Context) {
 				SyncFlavor(ctx)
 				SyncNetwork(ctx)
 				SyncVolumes(ctx)
+				models.CreateParams()
 				count = 0
 			}
 			DBmu.Unlock()

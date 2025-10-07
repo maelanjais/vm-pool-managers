@@ -1,6 +1,8 @@
 import { writable } from 'svelte/store';
 import {jwtDecode} from 'jwt-decode';
 import { goto } from '$app/navigation';
+import { connectWebSocket, disconnectWebSocket } from '$lib/websocket';
+import { serverpoolStore } from '$lib/stores/fetchinit';
 
 interface JwtPayload {
   exp: number;
@@ -23,6 +25,7 @@ if (typeof window !== 'undefined') {
   const token = localStorage.getItem('authToken');
   if (token && isTokenValid(token)) {
     authStore.set(token);
+    connectWebSocket(token);
   } else {
     localStorage.removeItem('authToken');
     authStore.set(null);
@@ -31,19 +34,18 @@ if (typeof window !== 'undefined') {
 
 export function login(token: string) {
   localStorage.setItem('authToken', token);
+  connectWebSocket(token);
   authStore.set(token);
+  serverpoolStore.fetchInitData();
 }
 
 export function logout() {
   localStorage.removeItem('authToken');
   authStore.set(null);
+  disconnectWebSocket();
   goto("/");
 }
 
-/**
- * Essaie de se connecter avec email/password
- * Retourne un objet { success: boolean, error?: string }
- */
 export async function tryLogin(email: string, password: string) {
   if (!email || !password) {
     return { success: false, error: 'Champs non rempli' };

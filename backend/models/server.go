@@ -25,8 +25,8 @@ type Server struct {
 func FromGopherServer(s servers.Server) Server {
 	var networks []string
 	for netName, netAddrs := range s.Addresses {
-		for _, addr := range netAddrs.([]interface{}) {
-			if addrMap, ok := addr.(map[string]interface{}); ok {
+		for _, addr := range netAddrs.([]any) {
+			if addrMap, ok := addr.(map[string]any); ok {
 				if ip, ok := addrMap["addr"].(string); ok {
 					networks = append(networks, fmt.Sprintf("%s:%s", netName, ip))
 				}
@@ -34,7 +34,6 @@ func FromGopherServer(s servers.Server) Server {
 		}
 	}
 
-	// Metadata est déjà une map[string]string
 	metadata := make(map[string]string)
 	for k, v := range s.Metadata {
 		metadata[k] = v
@@ -44,8 +43,8 @@ func FromGopherServer(s servers.Server) Server {
 		ID:           s.ID,
 		Name:         s.Name,
 		Status:       s.Status,
-		FlavorRef:    s.Flavor["id"].(string), // Flavor est une map
-		ImageRef:     s.Image["id"].(string),  // Image aussi
+		FlavorRef:    s.Flavor["id"].(string),
+		ImageRef:     s.Image["id"].(string),
 		Networks:     networks,
 		Metadata:     metadata,
 		ServerpoolID: s.Metadata["serverpool_id"],

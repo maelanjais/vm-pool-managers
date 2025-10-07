@@ -15,7 +15,7 @@ type JSONStringMap map[string]string
 type JSONAttachments []volumes.Attachment
 
 // -------- JSONStringSlice --------
-func (j *JSONStringSlice) Scan(value interface{}) error {
+func (j *JSONStringSlice) Scan(value any) error {
 	if value == nil {
 		*j = JSONStringSlice{}
 		return nil
@@ -47,7 +47,7 @@ func (j JSONStringSlice) Value() (driver.Value, error) {
 }
 
 // -------- JSONStringMap --------
-func (j *JSONStringMap) Scan(value interface{}) error {
+func (j *JSONStringMap) Scan(value any) error {
 	if value == nil {
 		*j = JSONStringMap{}
 		return nil
@@ -89,7 +89,7 @@ func (j JSONStringSlice) ToNetworks() []servers.Network {
 
 // -------- JSONAttachments --------
 
-func (j *JSONAttachments) Scan(value interface{}) error {
+func (j *JSONAttachments) Scan(value any) error {
 	if value == nil {
 		*j = JSONAttachments{}
 		return nil
