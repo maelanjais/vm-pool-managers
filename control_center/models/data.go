@@ -1,14 +1,13 @@
 package models
 
 import (
-	"PoolManagerVM/backend/pb"
+	"control_center/pb"
 	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Image struct {
 	ID               string    `gorm:"primaryKey" json:"id"`
+	Host             string    `json:"host"`
 	Name             string    `json:"name"`
 	Status           string    `json:"status"`
 	Tags             string    `json:"tags"` // Stocké en CSV
@@ -32,34 +31,38 @@ type Image struct {
 	// Metadata et Properties exclus car SQLite ne stocke pas les maps
 }
 
-func (i *Image) ToPb() *pb.Image {
-	return &pb.Image{
-		Id:               i.ID,
-		Name:             i.Name,
-		Status:           i.Status,
-		Tags:             i.Tags,
-		ContainerFormat:  i.ContainerFormat,
-		DiskFormat:       i.DiskFormat,
-		MinDiskGigabytes: int32(i.MinDiskGigabytes),
-		MinRamMegabytes:  int32(i.MinRAMMegabytes),
-		Owner:            i.Owner,
-		Protected:        i.Protected,
-		Visibility:       i.Visibility,
-		Hidden:           i.Hidden,
-		Checksum:         i.Checksum,
-		SizeBytes:        i.SizeBytes,
-		CreatedAt:        timestamppb.New(i.CreatedAt),
-		UpdatedAt:        timestamppb.New(i.UpdatedAt),
-		File:             i.File,
-		Schema:           i.Schema,
-		VirtualSize:      i.VirtualSize,
-		ImportMethods:    i.ImportMethods,
-		StoreIds:         i.StoreIDs,
+func (i *Image) FromPb(pbImg *pb.Image, host string) {
+	i.ID = pbImg.Id
+	i.Host = host
+	i.Name = pbImg.Name
+	i.Status = pbImg.Status
+	i.Tags = pbImg.Tags
+	i.ContainerFormat = pbImg.ContainerFormat
+	i.DiskFormat = pbImg.DiskFormat
+	i.MinDiskGigabytes = int(pbImg.MinDiskGigabytes)
+	i.MinRAMMegabytes = int(pbImg.MinRamMegabytes)
+	i.Owner = pbImg.Owner
+	i.Protected = pbImg.Protected
+	i.Visibility = pbImg.Visibility
+	i.Hidden = pbImg.Hidden
+	i.Checksum = pbImg.Checksum
+	i.SizeBytes = pbImg.SizeBytes
+	if pbImg.CreatedAt != nil {
+		i.CreatedAt = pbImg.CreatedAt.AsTime()
 	}
+	if pbImg.UpdatedAt != nil {
+		i.UpdatedAt = pbImg.UpdatedAt.AsTime()
+	}
+	i.File = pbImg.File
+	i.Schema = pbImg.Schema
+	i.VirtualSize = pbImg.VirtualSize
+	i.ImportMethods = pbImg.ImportMethods
+	i.StoreIDs = pbImg.StoreIds
 }
 
 type Flavor struct {
 	ID          string  `gorm:"primaryKey" json:"id"`
+	Host        string  `json:"host"`
 	Name        string  `json:"name"`
 	Disk        int     `json:"disk"`
 	RAM         int     `json:"ram"`
@@ -72,23 +75,24 @@ type Flavor struct {
 	ExtraSpecs  string  `json:"extra_specs"` // JSON sérialisé
 }
 
-func (f *Flavor) ToPb() *pb.Flavor {
-	return &pb.Flavor{
-		Id:          f.ID,
-		Name:        f.Name,
-		Disk:        int32(f.Disk),
-		Vcpus:       int32(f.VCPUs),
-		RxtxFactor:  f.RxTxFactor,
-		Swap:        int32(f.Swap),
-		Ephemeral:   int32(f.Ephemeral),
-		IsPublic:    f.IsPublic,
-		Description: f.Description,
-		ExtraSpecs:  f.ExtraSpecs,
-	}
+func (f *Flavor) FromPb(pbf *pb.Flavor, host string) {
+	f.ID = pbf.Id
+	f.Host = host
+	f.Name = pbf.Name
+	f.Disk = int(pbf.Disk)
+	f.RAM = int(pbf.Ram)
+	f.VCPUs = int(pbf.Vcpus)
+	f.RxTxFactor = pbf.RxtxFactor
+	f.Swap = int(pbf.Swap)
+	f.Ephemeral = int(pbf.Ephemeral)
+	f.IsPublic = pbf.IsPublic
+	f.Description = pbf.Description
+	f.ExtraSpecs = pbf.ExtraSpecs
 }
 
 type Network struct {
 	ID                    string `gorm:"primaryKey" json:"id"`
+	Host                  string `json:"host"`
 	Name                  string `json:"name"`
 	Description           string `json:"description"`
 	AdminStateUp          bool   `json:"admin_state_up"`
@@ -102,21 +106,20 @@ type Network struct {
 	Tags                  string `json:"tags"`                    // CSV
 }
 
-func (n *Network) ToPb() *pb.Network {
-	return &pb.Network{
-		Id:                    n.ID,
-		Name:                  n.Name,
-		Description:           n.Description,
-		AdminStateUp:          n.AdminStateUp,
-		Status:                n.Status,
-		TenantId:              n.TenantID,
-		ProjectId:             n.ProjectID,
-		Shared:                n.Shared,
-		RevisionNumber:        int32(n.RevisionNumber),
-		Subnets:               n.Subnets,
-		AvailabilityZoneHints: n.AvailabilityZoneHints,
-		Tags:                  n.Tags,
-	}
+func (n *Network) FromPb(pbn *pb.Network, host string) {
+	n.ID = pbn.Id
+	n.Host = host
+	n.Name = pbn.Name
+	n.Description = pbn.Description
+	n.AdminStateUp = pbn.AdminStateUp
+	n.Status = pbn.Status
+	n.TenantID = pbn.TenantId
+	n.ProjectID = pbn.ProjectId
+	n.Shared = pbn.Shared
+	n.RevisionNumber = int(pbn.RevisionNumber)
+	n.Subnets = pbn.Subnets
+	n.AvailabilityZoneHints = pbn.AvailabilityZoneHints
+	n.Tags = pbn.Tags
 }
 
 type VolumeDB struct {

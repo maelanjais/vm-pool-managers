@@ -49,7 +49,7 @@ func Start_DB() {
 	Database = db
 	log.Println("✅ Connexion à PostgreSQL réussie avec GORM")
 
-	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.ConfigPool{})
+	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.ConfigPool{}, &models.Image{}, &models.Flavor{}, &models.Network{})
 }
 
 func Sync_DB(ctx context.Context) {
