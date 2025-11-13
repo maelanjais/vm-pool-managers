@@ -2206,7 +2206,7 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"=\n" +
 	"\x0eGetPoolRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x17\n" +
-	"\apool_id\x18\x02 \x01(\tR\x06poolId\"\xb3\x01\n" +
+	"\apool_id\x18\x02 \x01(\tR\x06poolId\"\xb9\x01\n" +
 	"\x0fGetPoolResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x16\n" +
@@ -2214,7 +2214,7 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\anetwork\x18\x04 \x01(\tR\anetwork\x12\x16\n" +
 	"\x06config\x18\x05 \x01(\tR\x06config\x12\x15\n" +
 	"\x06min_vm\x18\x06 \x01(\x05R\x05minVm\x12\x15\n" +
-	"\x06max_vm\x18\a \x01(\x05R\x05maxVm\"+\n" +
+	"\x06max_vm\x18\a \x01(\x05R\x05maxVmJ\x04\b\b\x10\t\"+\n" +
 	"\x15UpdateDataUserRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\"\xff\x01\n" +
 	"\x16UpdateDataUserResponse\x12\x12\n" +

@@ -151,6 +151,7 @@ message GetPoolRequest {
 }
 
 message GetPoolResponse {
+    reserved 8;
     string name = 1;
     string image = 2;
     string flavor = 3;
