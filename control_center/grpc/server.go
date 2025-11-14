@@ -7,10 +7,13 @@ import (
 	"control_center/internal/auth"
 	"control_center/internal/configpool"
 	"control_center/internal/gatherdata"
+	"control_center/pb"
 	"log"
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 	"gorm.io/gorm"
 )
 
@@ -44,11 +47,21 @@ func Start_grpc(ctx context.Context) {
 
 	s := grpc.NewServer()
 
-	frontcontrolpb.RegisterAuthServiceServer(s, auth.New())
+	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Erreur de connexion: %v", err)
+	}
+	defer conn.Close()
+
+	client := pb.NewPoolManagerClient(conn)
+
+	frontcontrolpb.RegisterAuthServiceServer(s, auth.New(config.Database, client))
 	frontcontrolpb.RegisterGatherDataServiceServer(s, gatherdata.New())
 	frontcontrolpb.RegisterConfigServiceServer(s, configpool.New())
 	frontcontrolpb.RegisterPoolServiceServer(s, &PoolServer{DB: config.Database})
 	frontcontrolpb.RegisterUserServiceServer(s, &UserServer{DB: config.Database})
+
+	reflection.Register(s)
 
 	// Lance le serveur dans une goroutine
 	go func() {

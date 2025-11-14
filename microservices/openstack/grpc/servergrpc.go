@@ -165,6 +165,7 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 				default:
 					status = pb.Status_STATUS_UNKNOWN
 				}
+				log.Println("Sending message now")
 				err := stream.Send(&pb.StreamRessourceResponse{
 					User:   server.UserID,
 					Type:   pb.Type_SERVER,
@@ -192,6 +193,7 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 				default:
 					status = pb.Status_STATUS_UNKNOWN
 				}
+				log.Println("Sending message now")
 				err := stream.Send(&pb.StreamRessourceResponse{
 					User:   pool.UserID,
 					Type:   pb.Type_SERVERPOOL,
@@ -219,6 +221,7 @@ func (s *ServerMicroOpenstack) GetStreamRessources(req *emptypb.Empty, stream pb
 				default:
 					status = pb.Status_STATUS_UNKNOWN
 				}
+				log.Println("Sending message now")
 				err := stream.Send(&pb.StreamRessourceResponse{
 					User:   config.UserID,
 					Type:   pb.Type_CONFIG,

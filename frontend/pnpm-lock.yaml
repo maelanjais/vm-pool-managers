@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      google-protobuf:
+        specifier: ^4.0.0
+        version: 4.0.0
+      grpc-web:
+        specifier: ^2.0.2
+        version: 2.0.2
       jwt-decode:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1006,11 +1012,17 @@ packages:
     resolution: {integrity: sha512-ob/2LcVVaVGCYN+r14cnwnoDPUufjiYgSqRhiFD0Q1iI4Odora5RE8Iv1D24hAz5oMophRGkGz+yuvQmmUMnMw==}
     engines: {node: '>=18'}
 
+  google-protobuf@4.0.0:
+    resolution: {integrity: sha512-b8wmenhUMf2WNL+xIJ/slvD/hEE6V3nRnG86O2bzkBrMweM9gnqZE1dfXlDjibY3aXJXDNbAHepevYyQ7qWKsQ==}
+
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
+
+  grpc-web@2.0.2:
+    resolution: {integrity: sha512-bvBP0/d5jyVM3eGxxffJhRLAPpH6eXhJeUzBT+bSIEgUKkG4a/BotEimVeW3phP0WLnsJnkRl8uQdRf2yDLaVA==}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -2488,9 +2500,13 @@ snapshots:
 
   globals@16.4.0: {}
 
+  google-protobuf@4.0.0: {}
+
   graceful-fs@4.2.11: {}
 
   graphemer@1.4.0: {}
+
+  grpc-web@2.0.2: {}
 
   has-flag@4.0.0: {}
 

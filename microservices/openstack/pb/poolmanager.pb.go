@@ -82,6 +82,7 @@ const (
 	Type_SERVERPOOL   Type = 1
 	Type_SERVER       Type = 2
 	Type_CONFIG       Type = 3
+	Type_USER         Type = 4
 )
 
 // Enum value maps for Type.
@@ -91,12 +92,14 @@ var (
 		1: "SERVERPOOL",
 		2: "SERVER",
 		3: "CONFIG",
+		4: "USER",
 	}
 	Type_value = map[string]int32{
 		"TYPE_UNKNOWN": 0,
 		"SERVERPOOL":   1,
 		"SERVER":       2,
 		"CONFIG":       3,
+		"USER":         4,
 	}
 )
 
@@ -902,7 +905,7 @@ const file_poolmanager_proto_rawDesc = "" +
 	"\n" +
 	"\x06UPDATE\x10\x02\x12\n" +
 	"\n" +
-	"\x06DELETE\x10\x03*@\n" +
+	"\x06DELETE\x10\x03*J\n" +
 	"\x04Type\x12\x10\n" +
 	"\fTYPE_UNKNOWN\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -910,7 +913,8 @@ const file_poolmanager_proto_rawDesc = "" +
 	"\n" +
 	"\x06SERVER\x10\x02\x12\n" +
 	"\n" +
-	"\x06CONFIG\x10\x032\xd2\x03\n" +
+	"\x06CONFIG\x10\x03\x12\b\n" +
+	"\x04USER\x10\x042\xd2\x03\n" +
 	"\vPoolManager\x12O\n" +
 	"\x0eSendRessources\x12\x1d.poolmanager.RessourceRequest\x1a\x1e.poolmanager.RessourceResponse\x12U\n" +
 	"\x13GetStreamRessources\x12\x16.google.protobuf.Empty\x1a$.poolmanager.StreamRessourceResponse0\x01\x12[\n" +

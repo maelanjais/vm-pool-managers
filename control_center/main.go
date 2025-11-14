@@ -19,7 +19,7 @@ func main() {
 	}
 
 	// Initialisation de la base de données
-	config.Start_DB()
+	config.Start_DB(context.Background())
 
 	// Création d’un contexte annulé sur SIGINT ou SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

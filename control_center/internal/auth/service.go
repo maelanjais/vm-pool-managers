@@ -4,6 +4,7 @@ import (
 	"context"
 	"control_center/frontcontrolpb"
 	"control_center/models"
+	"control_center/pb"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -12,10 +13,11 @@ import (
 type Service struct {
 	frontcontrolpb.UnimplementedAuthServiceServer
 	DB *gorm.DB
+	pm pb.PoolManagerClient
 }
 
-func New() *Service {
-	return &Service{}
+func New(db *gorm.DB, pm pb.PoolManagerClient) *Service {
+	return &Service{DB: db, pm: pm}
 }
 
 func (s *Service) CreateUser(ctx context.Context, req *frontcontrolpb.CreateUserRequest) (*frontcontrolpb.CreateUserResponse, error) {
@@ -36,6 +38,24 @@ func (s *Service) CreateUser(ctx context.Context, req *frontcontrolpb.CreateUser
 			UserId:  "",
 		}, fmt.Errorf("Failed to create user: %v", err)
 	}
+	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
+		User: u.Email,
+		Data: map[string]string{
+			"name":     u.Name,
+			"email":    u.Email,
+			"password": u.Password,
+		},
+		Status: pb.Status_CREATE,
+		Type:   pb.Type_USER,
+	})
+
+	if rep.GetSuccess() == false || err != nil {
+		return &frontcontrolpb.CreateUserResponse{
+			Success: false,
+			UserId:  "",
+		}, fmt.Errorf("Failed to notify PoolManager: %v", err)
+	}
+
 	return &frontcontrolpb.CreateUserResponse{
 		Success: true,
 		UserId:  fmt.Sprintf("%d", u.ID),

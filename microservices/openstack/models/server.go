@@ -4,7 +4,6 @@ import (
 	"PoolManagerVM/backend/events"
 	"PoolManagerVM/backend/notifier"
 	"PoolManagerVM/backend/pb"
-	"PoolManagerVM/backend/websockethandler"
 	"encoding/json"
 	"fmt"
 
@@ -116,26 +115,26 @@ func PrintServer(server Server) error {
 }
 
 func (s *Server) AfterCreate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		websockethandler.SendMessageToUser(s.UserID, "created", s, "server")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_SERVER, Ressource: *s}
-	}
+	// if s.UserID != "admin" {
+	// websockethandler.SendMessageToUser(s.UserID, "created", s, "server")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_SERVER, Ressource: *s}
+	// }
 	return nil
 }
 
 func (s *Server) AfterUpdate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		websockethandler.SendMessageToUser(s.UserID, "updated", s, "server")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_SERVER, Ressource: *s}
-	}
+	// if s.UserID != "admin" {
+	// websockethandler.SendMessageToUser(s.UserID, "updated", s, "server")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_SERVER, Ressource: *s}
+	// }
 	return nil
 }
 
 func (s *Server) AfterDelete(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		websockethandler.SendMessageToUser(s.UserID, "deleted", s, "server")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_SERVER, Ressource: *s}
-	}
+	// if s.UserID != "admin" {
+	// websockethandler.SendMessageToUser(s.UserID, "deleted", s, "server")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_SERVER, Ressource: *s}
+	// }
 	return nil
 }
 

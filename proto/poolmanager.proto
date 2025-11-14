@@ -18,6 +18,7 @@ enum Type {
     SERVERPOOL = 1;
     SERVER = 2;
     CONFIG = 3;
+    USER = 4;
 }
 
 message RessourceRequest {

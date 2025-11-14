@@ -1,29 +1,19 @@
 {
-	servers {
-		protocols h1 h2 h2c
-	}
+	order grpc_web before reverse_proxy
 }
 
-# Si tu es en local : http://localhost
-localhost {
-	encode gzip
-
-	# Sert le build SvelteKit
-	root * ./frontend/build
-	file_server
-
-	# Traduit gRPC-Web → gRPC pour tes appels API
-	route /api/* {
-		grpc_web
-		reverse_proxy localhost:50051
-	}
-
+:443 {
 	header {
 		Access-Control-Allow-Origin *
-		Access-Control-Allow-Methods *
 		Access-Control-Allow-Headers *
+		Access-Control-Allow-Methods GET,POST,OPTIONS
 	}
 
-	# Redirige toutes les routes vers index.html pour ton SPA SvelteKit
-	try_files {path} /index.html
+	grpc_web
+
+	reverse_proxy host.docker.internal:50051 {
+		transport http {
+			versions h2c
+		}
+	}
 }

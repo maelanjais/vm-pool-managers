@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"control_center/event"
 	"control_center/models"
 )
 
@@ -18,10 +19,11 @@ import (
 var (
 	Database *gorm.DB
 	DBmu     sync.Mutex
+	Broker   *event.EventBroker
 )
 
 // boot the database
-func Start_DB() {
+func Start_DB(ctx context.Context) {
 	// host := os.Getenv("POSTGRES_HOST")
 	host := "localhost"
 	port := os.Getenv("POSTGRES_PORT")
@@ -51,6 +53,15 @@ func Start_DB() {
 
 	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.ConfigPool{}, &models.Image{}, &models.Flavor{}, &models.Network{})
 	createNotifyTriggers()
+	Broker = event.NewEventBroker()
+
+	// 🚀 Lancer le listener Postgres en background
+	go func() {
+		err := event.ListenPostgres(ctx, dsn, Broker, []string{"servers", "serverpools", "config_pools"})
+		if err != nil {
+			log.Printf("ListenPostgres error: %v", err)
+		}
+	}()
 }
 
 func Sync_DB(ctx context.Context) {
