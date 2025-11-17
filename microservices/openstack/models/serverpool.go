@@ -78,26 +78,20 @@ func PrintMapServerpool(m []Serverpool) error {
 }
 
 func (s *Serverpool) AfterCreate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		websockethandler.SendMessageToUser(s.UserID, "created", s, "serverpool")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_SERVERPOOL, Ressource: *s}
-	}
+	websockethandler.SendMessageToUser(s.UserID, "created", s, "serverpool")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "created", Type: pb.Type_SERVERPOOL, Ressource: *s}
 	return nil
 }
 
 func (s *Serverpool) AfterUpdate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		websockethandler.SendMessageToUser(s.UserID, "updated", s, "serverpool")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_SERVERPOOL, Ressource: *s}
-	}
+	websockethandler.SendMessageToUser(s.UserID, "updated", s, "serverpool")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "updated", Type: pb.Type_SERVERPOOL, Ressource: *s}
 	return nil
 }
 
 func (s *Serverpool) AfterDelete(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		log.Println("Sending delete message to user:", s.UserID, "for serverpool:", s.ServerpoolID)
-		websockethandler.SendMessageToUser(s.UserID, "deleted", s, "serverpool")
-		notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_SERVERPOOL, Ressource: *s}
-	}
+	log.Println("Sending delete message to user:", s.UserID, "for serverpool:", s.ServerpoolID)
+	websockethandler.SendMessageToUser(s.UserID, "deleted", s, "serverpool")
+	notifier.GlobalChan <- events.RessourceEvent{Action: "deleted", Type: pb.Type_SERVERPOOL, Ressource: *s}
 	return nil
 }

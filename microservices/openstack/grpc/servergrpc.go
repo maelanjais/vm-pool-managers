@@ -2,9 +2,11 @@ package grpc
 
 import (
 	"PoolManagerVM/backend/config"
+	"PoolManagerVM/backend/internal/worker"
 	"PoolManagerVM/backend/models"
 	"PoolManagerVM/backend/notifier"
 	"PoolManagerVM/backend/pb"
+	"PoolManagerVM/backend/utils"
 	"context"
 	"fmt"
 	"log"
@@ -67,8 +69,9 @@ func (s *ServerMicroOpenstack) handleServerpool(db *gorm.DB, req *pb.RessourceRe
 		pool := models.Serverpool{
 			ServerpoolID: data["serverpool_id"],
 			UserID:       req.GetUser(),
-			ImageRef:     data["image"],
-			FlavorRef:    data["flavor"],
+			ImageRef:     data["image_ref"],
+			FlavorRef:    data["flavor_ref"],
+			Networks:     models.ParseJSONStringSlice(data["networks"]),
 			MinVM:        parseInt(data["min_vm"]),
 			MaxVM:        parseInt(data["max_vm"]),
 		}
@@ -83,8 +86,24 @@ func (s *ServerMicroOpenstack) handleServerpool(db *gorm.DB, req *pb.RessourceRe
 				"max_vm":     parseInt(data["max_vm"]),
 			}).Error
 	case pb.Status_DELETE:
-		return db.Where("serverpool_id = ? AND user_id = ?", data["serverpool_id"], req.GetUser()).
-			Delete(&models.Serverpool{}).Error
+		err := db.Where("serverpool_id = ? AND user_id = ?", data["serverpool_id"], req.GetUser()).Delete(&models.Serverpool{}).Error
+		if err != nil {
+			return err
+		}
+		// Also delete all servers linked to this serverpool
+		ops, err := utils.GetAllServers()
+		if err != nil {
+			return err
+		}
+		for _, serv := range ops {
+			if serv.Metadata["serverpool_id"] == data["serverpool_id"] && serv.Metadata["user_id"] == req.GetUser() {
+				var args []string
+				args = append(args, "instance_id")
+				args = append(args, serv.ID)
+				worker.AddJob(*worker.CreateJob(models.DeleteVM, utils.BuildDataMap(args)), true)
+			}
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown status for SERVERPOOL: %v", req.GetStatus())
 	}

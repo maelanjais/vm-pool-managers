@@ -5,6 +5,7 @@ import (
 	"control_center/frontcontrolpb"
 	"control_center/models"
 	"control_center/pb"
+	"log"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -37,6 +38,8 @@ func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePool
 		Networks:     models.JSONStringSlice{req.GetNetwork()},
 		ConfigID:     req.GetConfig(),
 	}
+
+	log.Printf("pool to map: %v", pool.ToMap())
 
 	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
 		User:   req.GetUser(),

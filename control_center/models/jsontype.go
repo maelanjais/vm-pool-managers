@@ -46,6 +46,15 @@ func (j JSONStringSlice) Value() (driver.Value, error) {
 	return json.Marshal(j)
 }
 
+func ParseJSONStringSlice(raw string) JSONStringSlice {
+	var result JSONStringSlice
+	if raw == "" {
+		return result
+	}
+	_ = json.Unmarshal([]byte(raw), &result)
+	return result
+}
+
 // -------- JSONStringMap --------
 func (j *JSONStringMap) Scan(value any) error {
 	if value == nil {

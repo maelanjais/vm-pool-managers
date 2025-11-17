@@ -129,6 +129,7 @@ message CreatePoolRequest {
     string config = 6;
     string min_vm = 7;
     string max_vm = 8;
+    map<string, string> metadata = 9;
 }
 
 message CreatePoolResponse {
