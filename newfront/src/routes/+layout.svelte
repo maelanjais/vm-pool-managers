@@ -2,7 +2,8 @@
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
   import logo from '$lib/assets/IDCS.png'
-  import { authStore, logout } from '$lib/index'
+  import { login, logout } from '$lib/index'
+  import { authStore } from '$lib/store';
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button } from 'flowbite-svelte';
   import { Modal, Label, Input } from 'flowbite-svelte';
   import { onMount } from 'svelte';
@@ -46,7 +47,7 @@
       }
 
       // Mettre à jour le store auth
-      authStore.set(result.token);
+      login(result.token, email);
       loginSuccess = true;
 
       setTimeout(() => {
@@ -137,7 +138,7 @@
 		{#if $authStore}
 		<NavLi href="/profile" class="text-gray-300 text-xl">Profil</NavLi>
 		<NavLi href="/serverpools" class="text-gray-300 text-xl">Mes Serverpools</NavLi>
-		<NavLi href="/configs" class="text-gray-300 text-xl">Mes Configurations</NavLi>
+		<NavLi href="/config" class="text-gray-300 text-xl">Mes Configurations</NavLi>
 		{/if}
 		<NavLi href="/" class="text-gray-300 text-xl">About</NavLi>
 	</NavUl>
