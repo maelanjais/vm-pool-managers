@@ -12,6 +12,7 @@ import type {
     UpdateDataUserRequest,
     UpdateDataUserResponse,
 } from "../frontcontrol_pb"
+import { handleUserUpdate } from "$lib/utils/updateHandlers";
 
 
 const transport = createGrpcWebTransport({
@@ -24,14 +25,14 @@ const transport = createGrpcWebTransport({
 
 const userclient = createClient(UserService, transport);
 
-export async function subscribeUserUpdate(user: string, onUpdate: (data: UpdateDataUserResponse) => void) {
+export async function subscribeUserUpdate(user: string) {
     const req = create(UpdateDataUserRequestSchema, {user});
     console.log("Envoi request stream :", req);
     const stream = userclient.updateDataUser(req);
 
     try {
         for await(const update of stream) { 
-            onUpdate(update);
+            handleUserUpdate(update)
         }
     } catch (err) {
         console.error("Erreur stream UserService:", err);

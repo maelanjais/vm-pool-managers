@@ -3,7 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 import { goto } from '$app/navigation';
 import { authenticateUser } from '$lib/grpc/authService/authService';
 import { subscribeUserUpdate } from '$lib/grpc/userUpdateService/userService';
-import { loadAll } from './serverpoolStore';
+import { resetAll } from './serverpoolStore';
 
 interface JwtPayload {
   exp: number;
@@ -15,35 +15,45 @@ interface AuthData {
   email: string;
 }
 
-// Store pour le token JWT
-export const authStore = writable<AuthData | null>(null);
+function createAuthStore() {
+  let initial: AuthData | null = null;
 
-let stopStream: (() => void) | null = null;
-
-authStore.subscribe((auth) => {
-  if (!auth) {
-    if (stopStream) {
-      stopStream();
-      stopStream = null;
-      console.log("Stream arreté");
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('authData');
+    if (saved) {
+      const data: AuthData = JSON.parse(saved);
+      if (isTokenValid(data.token)) {
+        initial = data;
+      } else {
+        localStorage.removeItem('authData');
+      }
     }
-    return;
   }
 
-  console.log("Stream start for ", auth.email);
-  let active = true;
-  subscribeUserUpdate(auth.email, (data) => {
-    if (!active) return;
-    console.log("Update user :", data);
-    //todo
-  });
-  stopStream = () => {
-    active = false;
-  };
-});
+  const store = writable<AuthData | null>(initial);
 
-// Vérifie si un token JWT est valide
-function isTokenValid(token: string): boolean {
+  // Persist state
+  store.subscribe((auth) => {
+    if (typeof window === 'undefined') return;
+
+
+    if (auth)
+      localStorage.setItem('authData', JSON.stringify(auth));
+    else
+      localStorage.removeItem('authData');
+  });
+
+  return store;
+}
+
+export const authStore = createAuthStore();
+
+
+// ---------------------------
+// Helpers
+// ---------------------------
+
+function isTokenValid(token: string) {
   try {
     const decoded = jwtDecode<JwtPayload>(token);
     return decoded.exp > Date.now() / 1000;
@@ -52,30 +62,17 @@ function isTokenValid(token: string): boolean {
   }
 }
 
-// Initialisation côté client
-if (typeof window !== 'undefined') {
-  const saved = localStorage.getItem('authData');
-  if (saved) {
-    const data: AuthData = JSON.parse(saved);
-    if (data.token && isTokenValid(data.token)) {
-      authStore.set(data);
-    } else {
-      localStorage.removeItem('authData');
-      authStore.set(null);
-    }
-  }
-}
+// ---------------------------
+// Login / Logout
+// ---------------------------
 
 export function login(token: string, email: string) {
-  const data: AuthData = { token, email };
-  localStorage.setItem('authData', JSON.stringify(data));
-  authStore.set(data);
-  loadAll(email);
+  authStore.set({ token, email });
 }
 
 export function logout() {
-  localStorage.removeItem('authData');
   authStore.set(null);
+  resetAll();
   goto("/");
 }
 

@@ -2,27 +2,41 @@
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
   import logo from '$lib/assets/IDCS.png'
-  import { login, logout } from '$lib/index'
+  import { loadAll, login, logout, resetAll } from '$lib/index'
   import { authStore } from '$lib/store';
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button } from 'flowbite-svelte';
   import { Modal, Label, Input } from 'flowbite-svelte';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { browser } from '$app/environment';
-
-  // 🚀 Importer tes nouvelles fonctions gRPC-Web
   import { createUser, authenticateUser } from '$lib/grpc/authService/authService';
+  import { subscribeUserUpdate } from '$lib/grpc/userUpdateService/userService';
+
+
+  let userStream: any = null;
+
+  authStore.subscribe(async (auth) => {
+    if (!browser) return;
+
+    if (auth?.email) {
+      if (!userStream) {
+        userStream = await subscribeUserUpdate(auth.email);
+      }
+    } else {
+      if (userStream?.cancel) userStream.cancel();
+      userStream = null;
+    }
+  });
 
   let { children } = $props();
 
   onMount(async () => {
     if (!browser) return;
-
     const token = get(authStore);
     if (token) {
-      // serverpoolStore.fetchInitData();
+      await loadAll(token.email);
     } else {
-      // serverpoolStore.reset();
+      resetAll();
     }
   });
 
@@ -49,6 +63,8 @@
       // Mettre à jour le store auth
       login(result.token, email);
       loginSuccess = true;
+
+      await loadAll(email);
 
       setTimeout(() => {
         form.reset();
@@ -106,10 +122,9 @@
       form.reset();
       createAccountModal = false;
       createAccountSuccess = false;
-      loginModal = true; // ouvrir login après création
+      loginModal = true;
     }, 3000);
   }
-
 </script>
 
 

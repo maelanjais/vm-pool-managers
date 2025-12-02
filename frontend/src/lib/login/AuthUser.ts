@@ -3,7 +3,11 @@ import * as pb from '../grpc/frontcontrol_pb';
 
 const client = new AuthServiceClient('http://localhost:8080');
 
-export async function CreateUser(username: string, password: string, email: string): Promise<{ userId: string, success: boolean }> {
+export async function CreateUser(
+    username: string,
+    password: string,
+    email: string)
+    : Promise<{ userId: string, success: boolean }> {
     const req = new pb.CreateUserRequest();
     req.setUsername(username);
     req.setPassword(password);
@@ -19,7 +23,10 @@ export async function CreateUser(username: string, password: string, email: stri
     }
 }
 
-export async function AuthenticateUser (email: string, password: string): Promise<{ token: string, success: boolean }> {
+export async function AuthenticateUser (
+    email: string,
+    password: string)
+    : Promise<{ token: string, success: boolean }> {
     const req = new pb.AuthenticateUserRequest();
     req.setEmail(email);
     req.setPassword(password);

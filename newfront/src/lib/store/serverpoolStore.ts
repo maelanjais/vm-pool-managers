@@ -78,3 +78,12 @@ export async function loadAll(user: string) {
         loadConfigs(user),
     ]);
 }
+
+export function resetAll() {
+    images.set([]);
+    flavors.set([]);
+    networks.set([]);
+    servers.set([]);
+    serverPools.set([]);
+    configs.set([]);
+}
