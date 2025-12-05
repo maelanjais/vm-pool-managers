@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
-	"gorm.io/gorm"
 )
 
 type Server struct {
@@ -74,7 +73,6 @@ func (s *Server) ToMap() map[string]string {
 		"config_id":     fmt.Sprintf("%d", s.ConfigID),
 	}
 
-	// Convertir les champs JSON custom (JSONStringSlice, JSONStringMap)
 	if s.Networks != nil {
 		if b, err := json.Marshal(s.Networks); err == nil {
 			result["networks"] = string(b)
@@ -87,7 +85,6 @@ func (s *Server) ToMap() map[string]string {
 	}
 
 	result["host"] = "OpenStack"
-
 	return result
 }
 
@@ -100,6 +97,7 @@ func (s *Server) FromPb(pbs *pb.StreamRessourceResponse) {
 	s.ServerpoolID = pbs.Data["serverpool_id"]
 	s.UserID = pbs.Data["user_id"]
 	s.AttachVolumeID = pbs.Data["attach_volume"]
+
 	if v, ok := pbs.Data["vol_pending"]; ok {
 		s.VolPending = (v == "true")
 	}
@@ -141,8 +139,8 @@ func (s *Server) ToFrontControlPb() *frontcontrolpb.Server {
 		Status:    s.Status,
 		Image:     s.ImageRef,
 		Flavor:    s.FlavorRef,
-		Network:   "", // à mapper selon ta logique
-		IpAddress: "", // idem
+		Network:   "",
+		IpAddress: "",
 		CreatedAt: nil,
 		UpdatedAt: nil,
 		Metadata:  metadata,
@@ -160,27 +158,6 @@ func PrintServer(server Server) error {
 	fmt.Printf("Metadata: %+v\n", server.Metadata)
 	fmt.Printf("ServerpoolID: %s\n", server.ServerpoolID)
 	fmt.Printf("UserID: %s\n", server.UserID)
-	return nil
-}
-
-func (s *Server) AfterCreate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		// websockethandler.SendMessageToUser(s.UserID, "created", s, "server")
-	}
-	return nil
-}
-
-func (s *Server) AfterUpdate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		// websockethandler.SendMessageToUser(s.UserID, "updated", s, "server")
-	}
-	return nil
-}
-
-func (s *Server) AfterDelete(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		// websockethandler.SendMessageToUser(s.UserID, "deleted", s, "server")
-	}
 	return nil
 }
 

@@ -2,11 +2,12 @@ package pool
 
 import (
 	"context"
+	"log"
+	"strconv"
+
 	"control_center/frontcontrolpb"
 	"control_center/models"
 	"control_center/pb"
-	"log"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -24,7 +25,10 @@ func New(db *gorm.DB, pm pb.PoolManagerClient) *Service {
 	}
 }
 
-func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePoolRequest) (*frontcontrolpb.CreatePoolResponse, error) {
+func (s *Service) CreatePool(
+	ctx context.Context,
+	req *frontcontrolpb.CreatePoolRequest,
+) (*frontcontrolpb.CreatePoolResponse, error) {
 	minVM, _ := strconv.Atoi(req.GetMinVm())
 	maxVM, _ := strconv.Atoi(req.GetMaxVm())
 
@@ -41,40 +45,62 @@ func (s *Service) CreatePool(ctx context.Context, req *frontcontrolpb.CreatePool
 
 	log.Printf("pool to map: %v", pool.ToMap())
 
-	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
-		User:   req.GetUser(),
-		Data:   pool.ToMap(),
-		Status: pb.Status_CREATE,
-		Type:   pb.Type_SERVERPOOL,
-	})
-	if rep.GetSuccess() == false || err != nil {
+	rep, err := s.pm.SendRessources(
+		context.Background(),
+		&pb.RessourceRequest{
+			User:   req.GetUser(),
+			Data:   pool.ToMap(),
+			Status: pb.Status_CREATE,
+			Type:   pb.Type_SERVERPOOL,
+		},
+	)
+
+	if err != nil || rep.GetSuccess() == false {
 		return &frontcontrolpb.CreatePoolResponse{Success: false}, err
 	}
+
 	return &frontcontrolpb.CreatePoolResponse{Success: true}, nil
 }
 
-func (s *Service) DeletePool(ctx context.Context, req *frontcontrolpb.DeletePoolRequest) (*frontcontrolpb.DeletePoolResponse, error) {
+func (s *Service) DeletePool(
+	ctx context.Context,
+	req *frontcontrolpb.DeletePoolRequest,
+) (*frontcontrolpb.DeletePoolResponse, error) {
 	var pool models.Serverpool
-	if err := s.DB.Where("serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser()).First(&pool).Error; err != nil {
+	if err := s.DB.Where(
+		"serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser(),
+	).First(&pool).Error; err != nil {
 		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
 	}
-	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
-		User:   req.GetUser(),
-		Data:   pool.ToMap(),
-		Status: pb.Status_DELETE,
-		Type:   pb.Type_SERVERPOOL,
-	})
-	if rep.GetSuccess() == false || err != nil {
+
+	rep, err := s.pm.SendRessources(
+		context.Background(),
+		&pb.RessourceRequest{
+			User:   req.GetUser(),
+			Data:   pool.ToMap(),
+			Status: pb.Status_DELETE,
+			Type:   pb.Type_SERVERPOOL,
+		},
+	)
+
+	if err != nil || rep.GetSuccess() == false {
 		return &frontcontrolpb.DeletePoolResponse{Success: false}, err
 	}
+
 	return &frontcontrolpb.DeletePoolResponse{Success: true}, nil
 }
 
-func (s *Service) GetPool(ctx context.Context, req *frontcontrolpb.GetPoolRequest) (*frontcontrolpb.GetPoolResponse, error) {
+func (s *Service) GetPool(
+	ctx context.Context,
+	req *frontcontrolpb.GetPoolRequest,
+) (*frontcontrolpb.GetPoolResponse, error) {
 	var pool models.Serverpool
-	if err := s.DB.Where("serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser()).First(&pool).Error; err != nil {
+	if err := s.DB.Where(
+		"serverpool_id = ? AND user_id = ?", req.GetPoolId(), req.GetUser(),
+	).First(&pool).Error; err != nil {
 		return &frontcontrolpb.GetPoolResponse{}, err
 	}
+
 	return &frontcontrolpb.GetPoolResponse{
 		Name:    pool.ServerpoolID,
 		Image:   pool.ImageRef,
@@ -86,23 +112,33 @@ func (s *Service) GetPool(ctx context.Context, req *frontcontrolpb.GetPoolReques
 	}, nil
 }
 
-func (s *Service) RebuildServer(ctx context.Context, req *frontcontrolpb.RebuildServerRequest) (*frontcontrolpb.RebuildServerResponse, error) {
+func (s *Service) RebuildServer(
+	ctx context.Context,
+	req *frontcontrolpb.RebuildServerRequest,
+) (*frontcontrolpb.RebuildServerResponse, error) {
 	var server models.Server
-	err := s.DB.Where("name = ? AND user_id = ?", req.GetServerId(), req.GetUser()).First(&server).Error
-	if err != nil {
+	if err := s.DB.Where(
+		"name = ? AND user_id = ?", req.GetServerId(), req.GetUser(),
+	).First(&server).Error; err != nil {
 		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
 	}
+
 	data := server.ToMap()
 	data["serverpool_id"] = req.GetPoolId()
 
-	rep, err := s.pm.SendRessources(context.Background(), &pb.RessourceRequest{
-		User:   req.GetUser(),
-		Data:   data,
-		Status: pb.Status_UPDATE,
-		Type:   pb.Type_SERVER,
-	})
+	rep, err := s.pm.SendRessources(
+		context.Background(),
+		&pb.RessourceRequest{
+			User:   req.GetUser(),
+			Data:   data,
+			Status: pb.Status_UPDATE,
+			Type:   pb.Type_SERVER,
+		},
+	)
+
 	if err != nil || !rep.GetSuccess() {
 		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
 	}
+
 	return &frontcontrolpb.RebuildServerResponse{Success: true}, nil
 }

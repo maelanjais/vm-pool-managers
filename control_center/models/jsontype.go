@@ -14,7 +14,6 @@ type JSONStringSlice []string
 type JSONStringMap map[string]string
 type JSONAttachments []volumes.Attachment
 
-// -------- JSONStringSlice --------
 func (j *JSONStringSlice) Scan(value any) error {
 	if value == nil {
 		*j = JSONStringSlice{}
@@ -55,7 +54,6 @@ func ParseJSONStringSlice(raw string) JSONStringSlice {
 	return result
 }
 
-// -------- JSONStringMap --------
 func (j *JSONStringMap) Scan(value any) error {
 	if value == nil {
 		*j = JSONStringMap{}
@@ -95,8 +93,6 @@ func (j JSONStringSlice) ToNetworks() []servers.Network {
 	log.Println("j:", j, "nets:", nets)
 	return nets
 }
-
-// -------- JSONAttachments --------
 
 func (j *JSONAttachments) Scan(value any) error {
 	if value == nil {

@@ -24,15 +24,17 @@ var (
 
 // boot the database
 func Start_DB(ctx context.Context) {
-	// host := os.Getenv("POSTGRES_HOST")
 	host := "localhost"
 	port := os.Getenv("POSTGRES_PORT")
 	user := os.Getenv("POSTGRES_USER")
 	pw := os.Getenv("POSTGRES_PASSWORD")
 	dbname := os.Getenv("POSTGRES_DB")
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC", host, user, pw, dbname, port)
 
-	var err error
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s "+
+			"sslmode=disable TimeZone=UTC",
+		host, user, pw, dbname, port,
+	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -51,13 +53,24 @@ func Start_DB(ctx context.Context) {
 	Database = db
 	log.Println("Connexion à PostgreSQL réussie avec GORM")
 
-	Database.AutoMigrate(&models.User{}, &models.Serverpool{}, &models.Server{}, &models.ConfigPool{}, &models.Image{}, &models.Flavor{}, &models.Network{})
+	Database.AutoMigrate(
+		&models.User{},
+		&models.Serverpool{},
+		&models.Server{},
+		&models.ConfigPool{},
+		&models.Image{},
+		&models.Flavor{},
+		&models.Network{},
+	)
+
 	createNotifyTriggers()
 	Broker = event.NewEventBroker()
 
-	// 🚀 Lancer le listener Postgres en background
 	go func() {
-		err := event.ListenPostgres(ctx, dsn, Broker, []string{"servers", "serverpools", "config_pools"})
+		err := event.ListenPostgres(
+			ctx, dsn, Broker,
+			[]string{"servers", "serverpools", "config_pools"},
+		)
 		if err != nil {
 			log.Printf("ListenPostgres error: %v", err)
 		}
@@ -75,13 +88,11 @@ func Sync_DB(ctx context.Context) {
 			return
 		case <-ticker.C:
 			log.Println("Synchronisation de la base de données...")
-			// Exemple : synchroniser les serveurs, configurations, etc.
 		}
 	}
 }
 
 func createNotifyTriggers() {
-	// Fonction générique pour notifier les changements
 	triggerFuncSQL := `
 CREATE OR REPLACE FUNCTION notify_table_change()
 RETURNS trigger AS $$
@@ -118,7 +129,6 @@ $$ LANGUAGE plpgsql;
 		log.Fatalf("Erreur lors de la création de la fonction trigger : %v", err)
 	}
 
-	// Liste des tables pour lesquelles créer les triggers
 	tables := []string{"servers", "serverpools", "config_pools"}
 
 	for _, table := range tables {
@@ -134,7 +144,9 @@ END$$;
 `, table, table, table)
 
 		if err := Database.Exec(triggerSQL).Error; err != nil {
-			log.Fatalf("Erreur lors de la création du trigger pour %s : %v", table, err)
+			log.Fatalf(
+				"Erreur lors de la création du trigger pour %s : %v", table, err,
+			)
 		}
 	}
 

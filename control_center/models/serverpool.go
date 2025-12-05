@@ -5,10 +5,7 @@ import (
 	"control_center/pb"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
-
-	"gorm.io/gorm"
 )
 
 type Serverpool struct {
@@ -84,7 +81,6 @@ func (sp *Serverpool) ToMap() map[string]string {
 		"config_id":     sp.ConfigID,
 	}
 
-	// Sérialiser les champs JSON custom
 	if sp.Networks != nil {
 		if b, err := json.Marshal(sp.Networks); err == nil {
 			result["networks"] = string(b)
@@ -101,16 +97,14 @@ func (sp *Serverpool) ToFrontControlPb() *frontcontrolpb.ServerPool {
 	}
 
 	return &frontcontrolpb.ServerPool{
-		Id:      strconv.FormatUint(uint64(sp.ID), 10), // uint → string
-		Name:    sp.ServerpoolID,                       // choix par défaut
-		Image:   sp.ImageRef,
-		Flavor:  sp.FlavorRef,
-		Network: network,
-		Config:  sp.ConfigID,
-		MinVm:   int32(sp.MinVM),
-		MaxVm:   int32(sp.MaxVM),
-
-		// pas de metadata dans ton modèle → map vide
+		Id:       strconv.FormatUint(uint64(sp.ID), 10),
+		Name:     sp.ServerpoolID,
+		Image:    sp.ImageRef,
+		Flavor:   sp.FlavorRef,
+		Network:  network,
+		Config:   sp.ConfigID,
+		MinVm:    int32(sp.MinVM),
+		MaxVm:    int32(sp.MaxVM),
 		Metadata: map[string]string{},
 	}
 }
@@ -127,10 +121,6 @@ func PrintServerpool(sp Serverpool) error {
 	fmt.Println("MaxVm: ", sp.MaxVM)
 	fmt.Println("PendingJobs: ", sp.PendingJobs)
 	fmt.Println("ConfigID: ", sp.ConfigID)
-	// for _, s := range sp.ListServ {
-	// 	PrintServer(s)
-	// }
-
 	return nil
 }
 
@@ -139,28 +129,6 @@ func PrintMapServerpool(m []Serverpool) error {
 	for _, p := range m {
 		PrintServerpool(p)
 		fmt.Println("=====================================")
-	}
-	return nil
-}
-
-func (s *Serverpool) AfterCreate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		// websockethandler.SendMessageToUser(s.UserID, "created", s, "serverpool")
-	}
-	return nil
-}
-
-func (s *Serverpool) AfterUpdate(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		// websockethandler.SendMessageToUser(s.UserID, "updated", s, "serverpool")
-	}
-	return nil
-}
-
-func (s *Serverpool) AfterDelete(tx *gorm.DB) (err error) {
-	if s.UserID != "admin" {
-		log.Println("Sending delete message to user:", s.UserID, "for serverpool:", s.ServerpoolID)
-		// websockethandler.SendMessageToUser(s.UserID, "deleted", s, "serverpool")
 	}
 	return nil
 }

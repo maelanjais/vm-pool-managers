@@ -1,11 +1,12 @@
 package user
 
 import (
-	"control_center/event"
-	"control_center/frontcontrolpb"
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"control_center/event"
+	"control_center/frontcontrolpb"
 
 	"gorm.io/gorm"
 )
@@ -30,11 +31,12 @@ func New(db *gorm.DB, broker *event.EventBroker) *Service {
 	}
 }
 
-func (s *Service) UpdateDataUser(req *frontcontrolpb.UpdateDataUserRequest, stream frontcontrolpb.UserService_UpdateDataUserServer) error {
+func (s *Service) UpdateDataUser(
+	req *frontcontrolpb.UpdateDataUserRequest,
+	stream frontcontrolpb.UserService_UpdateDataUserServer,
+) error {
 	user := req.GetUser()
-
 	ctx := stream.Context()
-
 	sub := s.Broker.Subscribe()
 	defer s.Broker.Unsubscribe(sub)
 

@@ -241,7 +241,7 @@ func (n *Network) ToFrontControlPb() *frontcontrolpb.Network {
 }
 
 type VolumeDB struct {
-	ID                  string `gorm:"primaryKey"` // Même ID que OpenStack
+	ID                  string `gorm:"primaryKey"`
 	Status              string
 	Size                int
 	AvailabilityZone    string

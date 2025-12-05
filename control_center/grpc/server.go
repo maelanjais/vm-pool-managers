@@ -40,7 +40,7 @@ type UserServer struct {
 }
 
 func Start_grpc(ctx context.Context) {
-	log.Println("Démarage du serveur gRPC...")
+	log.Println("Démarrage du serveur gRPC...")
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
@@ -49,7 +49,9 @@ func Start_grpc(ctx context.Context) {
 
 	s := grpc.NewServer()
 
-	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(
+		insecure.NewCredentials(),
+	))
 	if err != nil {
 		log.Fatalf("Erreur de connexion: %v", err)
 	}
@@ -65,7 +67,6 @@ func Start_grpc(ctx context.Context) {
 
 	reflection.Register(s)
 
-	// Lance le serveur dans une goroutine
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Erreur serveur gRPC: %v", err)
@@ -74,11 +75,9 @@ func Start_grpc(ctx context.Context) {
 
 	log.Println("Serveur gRPC lancé sur le port 50051")
 
-	// Attend que le contexte soit annulé
 	<-ctx.Done()
 	log.Println("Arrêt du serveur gRPC demandé...")
 
-	// Arrêt propre du serveur
 	s.GracefulStop()
 	log.Println("Serveur gRPC arrêté proprement ✅")
 }

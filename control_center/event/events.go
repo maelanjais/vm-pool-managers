@@ -53,7 +53,12 @@ func (b *EventBroker) Publish(event string) {
 	}
 }
 
-func ListenPostgres(ctx context.Context, dsn string, broker *EventBroker, tables []string) error {
+func ListenPostgres(
+	ctx context.Context,
+	dsn string,
+	broker *EventBroker,
+	tables []string,
+) error {
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		return fmt.Errorf("failed to connect to Postgres: %w", err)
@@ -63,7 +68,9 @@ func ListenPostgres(ctx context.Context, dsn string, broker *EventBroker, tables
 		channel := table + "_events"
 		_, err := conn.Exec(ctx, "LISTEN "+channel)
 		if err != nil {
-			return fmt.Errorf("failed to listen on channel %s: %w", channel, err)
+			return fmt.Errorf(
+				"failed to listen on channel %s: %w", channel, err,
+			)
 		}
 		log.Printf("Listening on Postgres channel: %s", channel)
 	}
@@ -72,24 +79,29 @@ func ListenPostgres(ctx context.Context, dsn string, broker *EventBroker, tables
 		defer conn.Close(ctx)
 
 		for {
-			notfication, err := conn.WaitForNotification(ctx)
+			notification, err := conn.WaitForNotification(ctx)
 			if err != nil {
 				select {
 				case <-ctx.Done():
 					log.Println("Stopping Postgres listener")
 					return
 				default:
-					log.Printf("Error while waiting for notification: %v", err)
+					log.Printf(
+						"Error while waiting for notification: %v", err,
+					)
 					continue
 				}
 			}
 
 			var event TableEvent
-			if err := json.Unmarshal([]byte(notfication.Payload), &event); err != nil {
-				log.Printf("Failed to unmarshal notification payload: %v", err)
+			if err := json.Unmarshal([]byte(notification.Payload), &event); err != nil {
+				log.Printf(
+					"Failed to unmarshal notification payload: %v", err,
+				)
 				continue
 			}
-			broker.Publish(notfication.Payload)
+
+			broker.Publish(notification.Payload)
 		}
 	}()
 

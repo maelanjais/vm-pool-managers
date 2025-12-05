@@ -37,7 +37,7 @@ tasks:
         ./bin/app
 
   frontend:
-    dir:  frontend
+    dir:  newfront
     cmds:
       - npm run dev
 
