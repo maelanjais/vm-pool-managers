@@ -70,3 +70,13 @@ export async function rebuildServer (req: RebuildServerRequest): Promise<Rebuild
         throw err;
     }
 }
+
+export async function addServer (req: CreatePoolRequest): Promise<RebuildServerResponse> {
+    try {
+        const res: RebuildServerResponse = await poolClient.addServer(req);
+        return res;
+    } catch (err) {
+        console.error("Error adding server: ", err)
+        throw err;
+    }
+}

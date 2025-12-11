@@ -142,3 +142,43 @@ func (s *Service) RebuildServer(
 
 	return &frontcontrolpb.RebuildServerResponse{Success: true}, nil
 }
+
+func (s *Service) AddServer(
+	ctx context.Context,
+	req *frontcontrolpb.CreatePoolRequest,
+) (*frontcontrolpb.RebuildServerResponse, error) {
+	var serv models.Server
+	var pool models.Serverpool
+	if err := s.DB.Where(
+		"serverpool_id = ? AND user_id = ?", req.GetName(), req.GetUser(),
+	).First(&pool).Error; err != nil {
+		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
+	}
+	serv = models.Server{
+		UserID:       req.GetUser(),
+		ImageRef:     pool.ImageRef,
+		FlavorRef:    pool.FlavorRef,
+		Networks:     pool.Networks,
+		ServerpoolID: pool.ServerpoolID,
+	}
+
+	data := serv.ToMap()
+	data["serverpool_id"] = pool.ServerpoolID
+	data["config_id"] = pool.ConfigID
+
+	rep, err := s.pm.SendRessources(
+		context.Background(),
+		&pb.RessourceRequest{
+			User:   req.GetUser(),
+			Data:   data,
+			Status: pb.Status_CREATE,
+			Type:   pb.Type_SERVER,
+		},
+	)
+
+	if err != nil || !rep.GetSuccess() {
+		return &frontcontrolpb.RebuildServerResponse{Success: false}, err
+	}
+
+	return &frontcontrolpb.RebuildServerResponse{Success: true}, nil
+}

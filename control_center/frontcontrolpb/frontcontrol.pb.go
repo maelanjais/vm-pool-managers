@@ -2439,7 +2439,7 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\fCreateConfig\x12!.frontcontrol.CreateConfigRequest\x1a\".frontcontrol.CreateConfigResponse\x12U\n" +
 	"\fUpdateConfig\x12!.frontcontrol.UpdateConfigRequest\x1a\".frontcontrol.UpdateConfigResponse\x12U\n" +
 	"\fDeleteConfig\x12!.frontcontrol.DeleteConfigRequest\x1a\".frontcontrol.DeleteConfigResponse\x12L\n" +
-	"\tGetConfig\x12\x1e.frontcontrol.GetConfigRequest\x1a\x1f.frontcontrol.GetConfigResponse2\x9f\x03\n" +
+	"\tGetConfig\x12\x1e.frontcontrol.GetConfigRequest\x1a\x1f.frontcontrol.GetConfigResponse2\xf2\x03\n" +
 	"\vPoolService\x12O\n" +
 	"\n" +
 	"CreatePool\x12\x1f.frontcontrol.CreatePoolRequest\x1a .frontcontrol.CreatePoolResponse\x12F\n" +
@@ -2447,7 +2447,8 @@ const file_frontcontrol_proto_rawDesc = "" +
 	"\vGetAllPools\x12\x1c.frontcontrol.GetPoolRequest\x1a\x1d.frontcontrol.GetPoolResponse0\x01\x12O\n" +
 	"\n" +
 	"DeletePool\x12\x1f.frontcontrol.DeletePoolRequest\x1a .frontcontrol.DeletePoolResponse\x12X\n" +
-	"\rRebuildServer\x12\".frontcontrol.RebuildServerRequest\x1a#.frontcontrol.RebuildServerResponse2l\n" +
+	"\rRebuildServer\x12\".frontcontrol.RebuildServerRequest\x1a#.frontcontrol.RebuildServerResponse\x12Q\n" +
+	"\tAddServer\x12\x1f.frontcontrol.CreatePoolRequest\x1a#.frontcontrol.RebuildServerResponse2l\n" +
 	"\vUserService\x12]\n" +
 	"\x0eUpdateDataUser\x12#.frontcontrol.UpdateDataUserRequest\x1a$.frontcontrol.UpdateDataUserResponse0\x01B\x12Z\x10./frontcontrolpbb\x06proto3"
 
@@ -2535,30 +2536,32 @@ var file_frontcontrol_proto_depIdxs = []int32{
 	21, // 27: frontcontrol.PoolService.GetAllPools:input_type -> frontcontrol.GetPoolRequest
 	19, // 28: frontcontrol.PoolService.DeletePool:input_type -> frontcontrol.DeletePoolRequest
 	25, // 29: frontcontrol.PoolService.RebuildServer:input_type -> frontcontrol.RebuildServerRequest
-	23, // 30: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
-	3,  // 31: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
-	5,  // 32: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
-	6,  // 33: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
-	7,  // 34: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
-	8,  // 35: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
-	31, // 36: frontcontrol.GatherDataService.ExistServer:output_type -> frontcontrol.ExistData
-	31, // 37: frontcontrol.GatherDataService.ExistServerPools:output_type -> frontcontrol.ExistData
-	31, // 38: frontcontrol.GatherDataService.ExistConfigs:output_type -> frontcontrol.ExistData
-	28, // 39: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
-	29, // 40: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
-	30, // 41: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
-	10, // 42: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
-	12, // 43: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
-	14, // 44: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
-	16, // 45: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
-	18, // 46: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
-	22, // 47: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
-	22, // 48: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
-	20, // 49: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
-	26, // 50: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
-	24, // 51: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
-	31, // [31:52] is the sub-list for method output_type
-	10, // [10:31] is the sub-list for method input_type
+	17, // 30: frontcontrol.PoolService.AddServer:input_type -> frontcontrol.CreatePoolRequest
+	23, // 31: frontcontrol.UserService.UpdateDataUser:input_type -> frontcontrol.UpdateDataUserRequest
+	3,  // 32: frontcontrol.AuthService.CreateUser:output_type -> frontcontrol.CreateUserResponse
+	5,  // 33: frontcontrol.AuthService.AuthenticateUser:output_type -> frontcontrol.AuthenticateUserResponse
+	6,  // 34: frontcontrol.GatherDataService.GetAllImages:output_type -> frontcontrol.Image
+	7,  // 35: frontcontrol.GatherDataService.GetAllFlavors:output_type -> frontcontrol.Flavor
+	8,  // 36: frontcontrol.GatherDataService.GetAllNetworks:output_type -> frontcontrol.Network
+	31, // 37: frontcontrol.GatherDataService.ExistServer:output_type -> frontcontrol.ExistData
+	31, // 38: frontcontrol.GatherDataService.ExistServerPools:output_type -> frontcontrol.ExistData
+	31, // 39: frontcontrol.GatherDataService.ExistConfigs:output_type -> frontcontrol.ExistData
+	28, // 40: frontcontrol.GatherDataService.GetAllServers:output_type -> frontcontrol.Server
+	29, // 41: frontcontrol.GatherDataService.GetAllServerPools:output_type -> frontcontrol.ServerPool
+	30, // 42: frontcontrol.GatherDataService.GetAllConfigs:output_type -> frontcontrol.Config
+	10, // 43: frontcontrol.ConfigService.CreateConfig:output_type -> frontcontrol.CreateConfigResponse
+	12, // 44: frontcontrol.ConfigService.UpdateConfig:output_type -> frontcontrol.UpdateConfigResponse
+	14, // 45: frontcontrol.ConfigService.DeleteConfig:output_type -> frontcontrol.DeleteConfigResponse
+	16, // 46: frontcontrol.ConfigService.GetConfig:output_type -> frontcontrol.GetConfigResponse
+	18, // 47: frontcontrol.PoolService.CreatePool:output_type -> frontcontrol.CreatePoolResponse
+	22, // 48: frontcontrol.PoolService.GetPool:output_type -> frontcontrol.GetPoolResponse
+	22, // 49: frontcontrol.PoolService.GetAllPools:output_type -> frontcontrol.GetPoolResponse
+	20, // 50: frontcontrol.PoolService.DeletePool:output_type -> frontcontrol.DeletePoolResponse
+	26, // 51: frontcontrol.PoolService.RebuildServer:output_type -> frontcontrol.RebuildServerResponse
+	26, // 52: frontcontrol.PoolService.AddServer:output_type -> frontcontrol.RebuildServerResponse
+	24, // 53: frontcontrol.UserService.UpdateDataUser:output_type -> frontcontrol.UpdateDataUserResponse
+	32, // [32:54] is the sub-list for method output_type
+	10, // [10:32] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name

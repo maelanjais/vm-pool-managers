@@ -58,7 +58,6 @@ func CreateVM(workerID int, job models.Job) error {
 	fmt.Println("Worker ", workerID, " takes the job of creating a VM")
 
 	serv := models.Server{
-		Name:         job.Data["name"],
 		FlavorRef:    job.Data["flavor_ref"],
 		ImageRef:     job.Data["image_ref"],
 		UserID:       job.Data["user_id"],

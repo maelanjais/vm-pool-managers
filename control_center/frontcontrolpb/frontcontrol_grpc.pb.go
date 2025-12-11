@@ -805,6 +805,7 @@ const (
 	PoolService_GetAllPools_FullMethodName   = "/frontcontrol.PoolService/GetAllPools"
 	PoolService_DeletePool_FullMethodName    = "/frontcontrol.PoolService/DeletePool"
 	PoolService_RebuildServer_FullMethodName = "/frontcontrol.PoolService/RebuildServer"
+	PoolService_AddServer_FullMethodName     = "/frontcontrol.PoolService/AddServer"
 )
 
 // PoolServiceClient is the client API for PoolService service.
@@ -816,6 +817,7 @@ type PoolServiceClient interface {
 	GetAllPools(ctx context.Context, in *GetPoolRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetPoolResponse], error)
 	DeletePool(ctx context.Context, in *DeletePoolRequest, opts ...grpc.CallOption) (*DeletePoolResponse, error)
 	RebuildServer(ctx context.Context, in *RebuildServerRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
+	AddServer(ctx context.Context, in *CreatePoolRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error)
 }
 
 type poolServiceClient struct {
@@ -885,6 +887,16 @@ func (c *poolServiceClient) RebuildServer(ctx context.Context, in *RebuildServer
 	return out, nil
 }
 
+func (c *poolServiceClient) AddServer(ctx context.Context, in *CreatePoolRequest, opts ...grpc.CallOption) (*RebuildServerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebuildServerResponse)
+	err := c.cc.Invoke(ctx, PoolService_AddServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PoolServiceServer is the server API for PoolService service.
 // All implementations must embed UnimplementedPoolServiceServer
 // for forward compatibility.
@@ -894,6 +906,7 @@ type PoolServiceServer interface {
 	GetAllPools(*GetPoolRequest, grpc.ServerStreamingServer[GetPoolResponse]) error
 	DeletePool(context.Context, *DeletePoolRequest) (*DeletePoolResponse, error)
 	RebuildServer(context.Context, *RebuildServerRequest) (*RebuildServerResponse, error)
+	AddServer(context.Context, *CreatePoolRequest) (*RebuildServerResponse, error)
 	mustEmbedUnimplementedPoolServiceServer()
 }
 
@@ -918,6 +931,9 @@ func (UnimplementedPoolServiceServer) DeletePool(context.Context, *DeletePoolReq
 }
 func (UnimplementedPoolServiceServer) RebuildServer(context.Context, *RebuildServerRequest) (*RebuildServerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RebuildServer not implemented")
+}
+func (UnimplementedPoolServiceServer) AddServer(context.Context, *CreatePoolRequest) (*RebuildServerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddServer not implemented")
 }
 func (UnimplementedPoolServiceServer) mustEmbedUnimplementedPoolServiceServer() {}
 func (UnimplementedPoolServiceServer) testEmbeddedByValue()                     {}
@@ -1023,6 +1039,24 @@ func _PoolService_RebuildServer_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PoolService_AddServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePoolRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PoolServiceServer).AddServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PoolService_AddServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PoolServiceServer).AddServer(ctx, req.(*CreatePoolRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PoolService_ServiceDesc is the grpc.ServiceDesc for PoolService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1045,6 +1079,10 @@ var PoolService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RebuildServer",
 			Handler:    _PoolService_RebuildServer_Handler,
+		},
+		{
+			MethodName: "AddServer",
+			Handler:    _PoolService_AddServer_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

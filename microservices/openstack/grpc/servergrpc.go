@@ -121,18 +121,12 @@ func (s *ServerMicroOpenstack) handleServer(db *gorm.DB, req *pb.RessourceReques
 	data := req.GetData()
 	switch req.GetStatus() {
 	case pb.Status_CREATE:
-		//shoud check if not max server reached
-		server := models.Server{
-			ID:           data["server_id"],
-			Name:         data["name"],
-			Status:       data["status"],
-			FlavorRef:    data["flavor_ref"],
-			ImageRef:     data["image_ref"],
-			Networks:     models.ParseJSONStringSlice(data["networks"]),
-			ServerpoolID: data["serverpool_id"],
-			UserID:       req.GetUser(),
+		var pool models.Serverpool
+		if err := db.Where(" user_id = ? AND serverpool_id = ? ", req.GetUser(), data["serverpool_id"]).First(&pool).Error; err != nil {
+			return err
 		}
-		return db.Create(&server).Error
+		worker.AddJob(*worker.CreateJob(models.CreateVM, utils.BuildDataMap(utils.FlatstringSP(pool))), true)
+		return nil
 	case pb.Status_UPDATE:
 		opts := &clientconfig.ClientOpts{
 			Cloud: os.Getenv("OPTS_CLOUD"),

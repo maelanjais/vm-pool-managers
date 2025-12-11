@@ -268,6 +268,7 @@ service PoolService {
     rpc GetAllPools (GetPoolRequest) returns (stream GetPoolResponse);
     rpc DeletePool (DeletePoolRequest) returns (DeletePoolResponse);
     rpc RebuildServer (RebuildServerRequest) returns (RebuildServerResponse);
+    rpc AddServer (CreatePoolRequest) returns (RebuildServerResponse);
 }
 
 service UserService {
