@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
@@ -85,7 +86,11 @@ func AttribVM(workerID int, job models.Job) error {
 	DecrementPending(uint(utils.ParseInt(job.Data["ID"])))
 	//dire a la DB que le serveur a ete modifie
 	config.DBmu.Lock()
-	config.Database.Model(&models.Server{}).Where("id = ?", target.ID).Update("serverpool_id", job.Data["serverpool_id"])
+	config.Database.Model(&models.Server{}).Where("id = ?", target.ID).
+		Update("serverpool_id", job.Data["serverpool_id"])
+	config.Database.Model(&models.Server{}).Where("id = ?", target.ID).
+		Update("user_id", job.Data["user_id"])
+	time.Sleep(5 * time.Second)
 	config.DBmu.Unlock()
 
 	log.Println("Successfully attributed VM", target.ID)
