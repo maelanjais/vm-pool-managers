@@ -58,7 +58,7 @@ func HandleStreamEvent(resp *pb.StreamRessourceResponse) {
 	case pb.Type_SERVER:
 		var serv models.Server
 		serv.FromPb(resp)
-		handleDBServerEvent(&serv, resp.Status)
+		handleDBServerEvent(&serv, resp.Status, resp.Data)
 	case pb.Type_SERVERPOOL:
 		var pool models.Serverpool
 		pool.FromPb(resp)
@@ -72,17 +72,40 @@ func HandleStreamEvent(resp *pb.StreamRessourceResponse) {
 	}
 }
 
-func handleDBServerEvent(server *models.Server, status pb.Status) {
+func handleDBServerEvent(server *models.Server, status pb.Status, data map[string]string) {
+	// A retravailler
 	switch status {
 	case pb.Status_CREATE:
-		if err := config.Database.Clauses(clause.OnConflict{UpdateAll: true}).
-			Create(server).Error; err != nil {
+		// if err := config.Database.Clauses(clause.OnConflict{UpdateAll: true}).
+		// 	Create(server).Error; err != nil {
+		// 	log.Printf("Erreur CREATE %T : %v", server, err)
+		// }
+		updates := serverUpdatesFromMap(data)
+		err := config.Database.
+			Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "id"}},
+				DoUpdates: clause.Assignments(updates),
+			}).
+			Create(server).Error
+		if err != nil {
 			log.Printf("Erreur CREATE %T : %v", server, err)
 		}
+
 	case pb.Status_UPDATE:
-		err := config.Database.Model(&models.Server{}).
+		// err := config.Database.Model(&models.Server{}).
+		// 	Where("id = ?", server.ID).
+		// 	Updates(server).Error
+		// if err != nil {
+		// 	log.Printf("Erreur UPDATE %T : %v", server, err)
+		// }
+		updates := serverUpdatesFromMap(data)
+		if len(updates) == 0 {
+			return
+		}
+		err := config.Database.
+			Model(&models.Server{}).
 			Where("id = ?", server.ID).
-			Updates(server).Error
+			Updates(updates).Error
 		if err != nil {
 			log.Printf("Erreur UPDATE %T : %v", server, err)
 		}
@@ -266,5 +289,30 @@ func serverpoolUpdatesFromMap(data map[string]string) map[string]any {
 		}
 	}
 
+	return updates
+}
+
+func serverUpdatesFromMap(data map[string]string) map[string]any {
+	updates := map[string]any{}
+	for k, v := range data {
+		switch k {
+		case "status":
+			updates["status"] = v
+		case "attach_volume_id":
+			updates["attach_volume_id"] = v
+		case "name":
+			updates["name"] = v
+		case "user_id":
+			updates["user_id"] = v
+		case "serverpool_id":
+			updates["serverpool_id"] = v
+		case "metadata":
+			updates["metadata"] = v
+		case "ip_address":
+			updates["ip_address"] = v
+		case "reattrib":
+			updates["reattrib"] = v
+		}
+	}
 	return updates
 }

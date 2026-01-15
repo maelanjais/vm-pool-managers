@@ -154,9 +154,17 @@ func launchDeletePool(p *models.Serverpool, client pb.PoolManagerClient) {
 		return
 	}
 	log.Printf("Pool ID %s deleted successfully", p.ServerpoolID)
+	var nextTimeStart *time.Time
+	if p.TimeStart != nil {
+		t := p.TimeStart.AddDate(0, 0, 7)
+		nextTimeStart = &t
+	}
 	err = config.Database.Model(p).
 		Where("status = ?", "deleting").
-		Update("status", "scheduled").Error
+		Updates(map[string]any{
+			"status":     "scheduled",
+			"time_start": nextTimeStart,
+		}).Error
 	if err != nil {
 		log.Println("Failed to update pool status:", err)
 	}

@@ -41,6 +41,11 @@ tasks:
     cmds:
       - npm run dev
 
+  frontexpose:
+    dir: newfront
+    cmds:
+      - npm run dev -- --host
+
   control:
     dir: control_center
     cmds:
