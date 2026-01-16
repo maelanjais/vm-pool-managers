@@ -9,36 +9,97 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
-// writeEnvFile crée ou remplace un fichier .env avec les variables fournies
+/*
+UTILS
+*/
+
 func writeEnvFile(path string, vars map[string]string) error {
-	file, err := os.Create(path)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
 	for k, v := range vars {
-		_, err := file.WriteString(fmt.Sprintf("%s=%s\n", k, v))
-		if err != nil {
+		if _, err := f.WriteString(fmt.Sprintf("%s=%s\n", k, v)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+/*
+MAIN
+*/
+
 func main() {
-	// -----------------
-	// Formulaire Controle Center
-	// -----------------
-	// Valeur par défaut directement dans la variable
+	home := os.Getenv("HOME")
+
+	/*
+		--------------------------------
+		SSH CONFIG (GLOBAL)
+		--------------------------------
+	*/
+	sshPrivateKeyPath := home + "/.ssh/id_ed25519"
+	sshPublicKeyPath := home + "/.ssh/id_ed25519.pub"
+
+	sshForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Chemin de la clé SSH PRIVÉE").
+				Description("Ex: ~/.ssh/id_ed25519").
+				Value(&sshPrivateKeyPath).
+				Validate(func(v string) error {
+					if !fileExists(v) {
+						return fmt.Errorf("clé privée introuvable")
+					}
+					return nil
+				}),
+
+			huh.NewInput().
+				Title("Chemin de la clé SSH PUBLIQUE").
+				Description("Ex: ~/.ssh/id_ed25519.pub").
+				Value(&sshPublicKeyPath).
+				Validate(func(v string) error {
+					if !fileExists(v) {
+						return fmt.Errorf("clé publique introuvable")
+					}
+					return nil
+				}),
+		),
+	)
+
+	if err := sshForm.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	/*
+		--------------------------------
+		CONTROL CENTER
+		--------------------------------
+	*/
 	ccUser := "admin"
 	ccPassword := ""
 
-	// Création du formulaire sans Default()
 	ccForm := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Control Center - Postgres User").Value(&ccUser),
-			huh.NewInput().Title("Control Center - Postgres Password").Value(&ccPassword),
+			huh.NewInput().
+				Title("Controle Center - Postgres User").
+				Value(&ccUser),
+
+			huh.NewInput().
+				Title("Controle Center - Postgres Password").
+				EchoMode(huh.EchoModePassword).
+				Value(&ccPassword),
 		),
 	)
 
@@ -53,26 +114,37 @@ func main() {
 		"POSTGRES_PASSWORD":    ccPassword,
 		"POSTGRES_DB":          "control_center",
 		"CONTROL_CENTER_PORT":  "50051",
-		"SSH_PUBLIC_KEY_PATH":  os.Getenv("HOME") + "/.ssh/id_ed25519.pub",
-		"SSH_PRIVATE_KEY_PATH": os.Getenv("HOME") + "/.ssh/id_ed25519",
+		"SSH_PUBLIC_KEY_PATH":  sshPublicKeyPath,
+		"SSH_PRIVATE_KEY_PATH": sshPrivateKeyPath,
 	}
 
 	ccEnvPath := filepath.Join("control_center", ".env")
 	if err := writeEnvFile(ccEnvPath, ccEnv); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("✅ Fichier .env control_center créé")
+	fmt.Println("✅ control_center/.env généré")
 
-	// -----------------
-	// Formulaire OpenStack
-	// -----------------
-	var osAPIKey, osOptsCloud, osSecretJWT string
+	/*
+		--------------------------------
+		OPENSTACK
+		--------------------------------
+	*/
+	var apiKeyName, optsCloud, secretJWT string
 
 	osForm := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("OpenStack - API_KEYNAME").Value(&osAPIKey),
-			huh.NewInput().Title("OpenStack - OPTS_CLOUD").Value(&osOptsCloud),
-			huh.NewInput().Title("OpenStack - SECRET_KEY_JWT").Value(&osSecretJWT),
+			huh.NewInput().
+				Title("OpenStack - API_KEYNAME").
+				Value(&apiKeyName),
+
+			huh.NewInput().
+				Title("OpenStack - OPTS_CLOUD").
+				Value(&optsCloud),
+
+			huh.NewInput().
+				Title("OpenStack - SECRET_KEY_JWT").
+				EchoMode(huh.EchoModePassword).
+				Value(&secretJWT),
 		),
 	)
 
@@ -81,7 +153,7 @@ func main() {
 	}
 
 	osEnv := map[string]string{
-		// Server base config
+		// Server
 		"SERVER_NAME":            "test",
 		"SERVER_IMAGE_REF":       "72d05dc3-73ec-405b-b870-48f70782526f",
 		"SERVER_FLAVOR_REF":      "a69d1ae1-74cf-4750-8f8c-a621a39f8e24",
@@ -95,7 +167,7 @@ func main() {
 		"METADATA_MIN_VM":        "2",
 		"METADATA_MAX_VM":        "9",
 
-		// Networks
+		// Network
 		"NETWORK_ID": "39aa90ca-163b-4630-9671-9439fefe516f",
 
 		// Volume
@@ -104,31 +176,35 @@ func main() {
 		"VOLUME_NAME":        "test",
 		"VOLUME_TYPE":        "__DEFAULT__",
 
-		// Keys
-		"API_KEYNAME":    osAPIKey,
-		"OPTS_CLOUD":     osOptsCloud,
-		"SECRET_KEY_JWT": osSecretJWT,
+		// Secrets
+		"API_KEYNAME":    apiKeyName,
+		"OPTS_CLOUD":     optsCloud,
+		"SECRET_KEY_JWT": secretJWT,
 
-		// SSH Key
-		"SSH_PUBLIC_KEY_PATH": os.Getenv("HOME") + "/.ssh/id_ed25519.pub",
+		// SSH
+		"SSH_PUBLIC_KEY_PATH": sshPublicKeyPath,
 	}
 
-	osEnvPath := filepath.Join("microservices/openstack", ".env")
+	osEnvPath := filepath.Join("openstack", ".env")
 	if err := writeEnvFile(osEnvPath, osEnv); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("✅ Fichier .env openstack créé")
+	fmt.Println("✅ openstack/.env généré")
 
-	// -----------------
-	// Racine .env pour Taskfile
-	// -----------------
+	/*
+		--------------------------------
+		ROOT .env (Taskfile)
+		--------------------------------
+	*/
 	rootEnv := map[string]string{
 		"CC_ENV_FILE": ccEnvPath,
 		"OS_ENV_FILE": osEnvPath,
 	}
-	rootEnvPath := ".env"
-	if err := writeEnvFile(rootEnvPath, rootEnv); err != nil {
+
+	if err := writeEnvFile(".env", rootEnv); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("✅ Fichier .env racine créé")
+	fmt.Println("✅ .env racine généré")
+
+	fmt.Println("\n🎉 Configuration terminée avec succès")
 }
