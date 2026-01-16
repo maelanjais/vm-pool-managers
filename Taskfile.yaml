@@ -12,6 +12,20 @@ tasks:
     cmds:
     - task --list
 
+  check_clouds:
+    desc: "Vérifie que le fichier clouds.yaml existe"
+    cmds:
+      - '[ -f {{.OS_CLIENT_CONFIG_FILE}} ] || { echo "❌ clouds.yaml introuvable à {{.OS_CLIENT_CONFIG_FILE}}"; exit 1; }'
+
+  setup :
+    desc: setup project 
+    cmds:
+    - '[ ! -f go.mod ] && go mod init github.com/tonpseudo/monprojet || echo "go.mod exists"'
+    - 'go get github.com/charmbracelet/huh@latest'
+    - 'go run config.go'
+    - task check_clouds
+
+
   build:
     desc: build the binary file for the backend
     dir: microservices/openstack
@@ -25,7 +39,7 @@ tasks:
     - go build -o ./bin/app .
 
   backend:
-    deps: [build]
+    deps: [build, check_clouds]
     dir: microservices/openstack
     cmds:
       - |
