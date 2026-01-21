@@ -14,7 +14,7 @@ UTILS
 */
 
 func writeEnvFile(path string, vars map[string]string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil && filepath.Dir(path) != "." {
 		return err
 	}
 
@@ -84,6 +84,44 @@ func main() {
 
 	/*
 		--------------------------------
+		OPENSTACK GLOBAL CONFIG
+		--------------------------------
+	*/
+	osClientConfigFile := home + "/.config/openstack/clouds.yaml"
+	osCloud := ""
+
+	openstackGlobalForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("OS_CLIENT_CONFIG_FILE").
+				Description("Chemin vers clouds.yaml").
+				Value(&osClientConfigFile).
+				Validate(func(v string) error {
+					if !fileExists(v) {
+						return fmt.Errorf("clouds.yaml introuvable")
+					}
+					return nil
+				}),
+
+			huh.NewInput().
+				Title("OS_CLOUD").
+				Description("Nom du cloud OpenStack").
+				Value(&osCloud).
+				Validate(func(v string) error {
+					if v == "" {
+						return fmt.Errorf("OS_CLOUD ne peut pas être vide")
+					}
+					return nil
+				}),
+		),
+	)
+
+	if err := openstackGlobalForm.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	/*
+		--------------------------------
 		CONTROL CENTER
 		--------------------------------
 	*/
@@ -126,20 +164,16 @@ func main() {
 
 	/*
 		--------------------------------
-		OPENSTACK
+		OPENSTACK SERVICE
 		--------------------------------
 	*/
 	var apiKeyName, optsCloud, secretJWT string
 
-	osForm := huh.NewForm(
+	openstackServiceForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("OpenStack - API_KEYNAME").
 				Value(&apiKeyName),
-
-			huh.NewInput().
-				Title("OpenStack - OPTS_CLOUD").
-				Value(&optsCloud),
 
 			huh.NewInput().
 				Title("OpenStack - SECRET_KEY_JWT").
@@ -148,7 +182,7 @@ func main() {
 		),
 	)
 
-	if err := osForm.Run(); err != nil {
+	if err := openstackServiceForm.Run(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -183,9 +217,12 @@ func main() {
 
 		// SSH
 		"SSH_PUBLIC_KEY_PATH": sshPublicKeyPath,
+
+		"OS_CLIENT_CONFIG_FILE": osClientConfigFile,
+		"OS_CLOUD":              osCloud,
 	}
 
-	osEnvPath := filepath.Join("openstack", ".env")
+	osEnvPath := filepath.Join("microservices/openstack", ".env")
 	if err := writeEnvFile(osEnvPath, osEnv); err != nil {
 		log.Fatal(err)
 	}

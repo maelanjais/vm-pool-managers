@@ -25,6 +25,7 @@ type Serverpool struct {
 	Timewindow   *time.Duration `gorm:"type:bigint"`
 	TimeStart    *time.Time     `gorm:"type:timestamptz"`
 	Keypublist   pq.StringArray `gorm:"type:text[]"`
+	ListStudents ListStudents   `gorm:"foreignKey:PoolId"`
 	Keypubuser   string
 	Status       string
 }

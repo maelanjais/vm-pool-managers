@@ -2,8 +2,6 @@ version: '3'
 
 
 vars:
-  OS_CLIENT_CONFIG_FILE: '{{.HOME}}/.config/openstack/clouds.yaml'
-  OS_CLOUD: 'idcs-stage-dev@stratuslab.production.virtualdata'
   DOTENV_PATH: '.env'
 
 tasks:
@@ -43,8 +41,6 @@ tasks:
     dir: microservices/openstack
     cmds:
       - |
-        export OS_CLIENT_CONFIG_FILE={{.OS_CLIENT_CONFIG_FILE}}
-        export OS_CLOUD={{.OS_CLOUD}}
         export PORT=8080
         export DOTENV_PATH={{.DOTENV_PATH}}
         #export GIN_MODE=release
@@ -78,6 +74,25 @@ tasks:
     - 
       rm -rf ./microservices/openstack/bin
       rm ./microservices/openstack/PoolManagerVM.db
+
+  dev:
+    desc: "Lance tout le soft (backend → control → frontend)"
+    cmds:
+      - |
+        tmux new-session -d -s soft
+
+        tmux rename-window -t soft:0 backend
+        tmux send-keys -t soft:backend "task backend" C-m
+
+        tmux new-window -t soft -n control
+        tmux send-keys -t soft:control \
+          "until nc -z localhost 50052; do echo '...'; sleep 1; done && task control" C-m
+
+        tmux new-window -t soft -n frontend
+        tmux send-keys -t soft:frontend "task frontexpose" C-m
+
+        tmux attach -t soft
+
 
   cli:
     desc: cli

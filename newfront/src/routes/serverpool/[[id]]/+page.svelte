@@ -55,6 +55,8 @@ import {
   type RebuildServerResponse,
   
 } from '$lib/grpc/frontcontrol_pb';
+import CreateServerPoolModal from '$lib/components/CreateServerPoolModal.svelte';
+
 
 
 let token: string | null = null;
@@ -391,6 +393,11 @@ async function handleSendSSHKeys() {
   </TableBody>
 </Table>
 
+
+{:else}
+<p>Aucun serveur trouvé pour ce serverpool.</p>
+{/if}
+
 {#if selectedPool}
 	<Button
     class="bg-tertiary-500 mt-4"
@@ -404,10 +411,6 @@ async function handleSendSSHKeys() {
   </Button>
 {/if}
 
-{:else}
-  <p>Aucun serveur trouvé pour ce serverpool.</p>
-{/if}
-
 <!-- Modal -->
 <Button
   size="md"
@@ -417,149 +420,34 @@ async function handleSendSSHKeys() {
 </Button>
 
 {#if createspModal}
-  <Modal
-    bind:open={createspModal}
-    class="bg-gray-500 bg-opacity-50"
-    focustrap>
-      <form
-        class="flex flex-col space-y-6 p-6 bg-white rounded-lg"
-        on:submit|preventDefault={handleCreateServerpool}
-      >
-      <h3 class="text-xl font-medium text-gray-800">Créer un Serverpool</h3>
+  <script lang="ts">
+  import CreateServerPoolModal from '$lib/components/CreateServerPoolModal.svelte';
+</script>
 
-      {#if createError}
-        <p class="text-red-500">{createError}</p>
-      {/if}
-      {#if createSuccess}
-        <p class="text-green-600 font-semibold">Serverpool créé !</p>
-      {/if}
+<CreateServerPoolModal
+  bind:open={createspModal}
+  images={$images}
+  flavors={sortedFlavors}
+  networks={$networks}
+  configs={$configs}
 
-      <!-- NOM -->
-      <Label>
-        <span>Nom du Serverpool</span>
-        <Input type="text" name="namesp" required />
-      </Label>
+  bind:selectedGroupImage
+  bind:selectedImage
+  bind:selectedFlavor
+  bind:selectedNetwork
+  bind:selectedConfigFile
+  bind:scheduleDay
+  bind:scheduleTime
+  bind:scheduleWindowHours
 
-      <!-- IMAGE (group + exact image) -->
-      <Label>
-        <span>Image</span>
-        <Select bind:value={selectedGroupImage} required>
-          <option disabled selected value="">Choisir un groupe d’images</option>
-          {#each getUniqueFirstAlphaBlocks($images) as prefix}
-            <option value={prefix}>{prefix}</option>
-          {/each}
-        </Select>
+  {createError}
+  {createSuccess}
 
-        {#if selectedGroupImage}
-          <Select bind:value={selectedImage} required>
-            <option disabled selected value="">Choisir une image</option>
-            {#each filterImagesByPrefix($images, selectedGroupImage) as img}
-              <option value={img.id}>{img.name}</option>
-            {/each}
-          </Select>
-        {/if}
-      </Label>
+  {handleCreateServerpool}
+  {getUniqueFirstAlphaBlocks}
+  {filterImagesByPrefix}
+/>
 
-      <!-- FLAVOR -->
-      <Label>
-        <span>Flavor</span>
-        <Select bind:value={selectedFlavor} required>
-          <option disabled selected value="">Choisir un flavor</option>
-          {#each sortedFlavors as f}
-            <option value={f.id}>{f.name}</option>
-          {/each}
-        </Select>
-      </Label>
-
-      <!-- NETWORKS MULTI -->
-      <Label>
-        <span>Réseaux</span>
-        <Select bind:value={selectedNetwork} required>
-    	<option disabled selected value="">Choisir un réseau</option>
-    		{#each networkOptions as net}
-        		<option value={net.value}>{net.name}</option>
-    		{/each}
-		</Select>
-
-
-      </Label>
-
-      <!-- MIN / MAX VM -->
-      <Label>
-        <span>Min VM</span>
-        <Input type="number" name="min_vm" min="1" value="1" required />
-      </Label>
-
-      <Label>
-        <span>Max VM</span>
-        <Input type="number" name="max_vm" min="1" value="1" required />
-      </Label>
-
-      <!-- CONFIG -->
-      <Label>
-        <span>Config</span>
-        <Select bind:value={selectedConfigFile}>
-          <option selected value="">Defaut</option>
-          {#each $configs as c}
-            <option value={c.name}>{c.name}</option>
-          {/each}
-        </Select>
-      </Label>
-
-      <!-- SCHEDULE -->
-      <Label>
-        <span>Schedule</span>
-      
-        <div class="grid grid-cols-3 gap-3 mt-1">
-          <!-- Jour -->
-          <Select bind:value={scheduleDay} required>
-            <option disabled selected value="">Jour</option>
-            <option value="1">Lundi</option>
-            <option value="2">Mardi</option>
-            <option value="3">Mercredi</option>
-            <option value="4">Jeudi</option>
-            <option value="5">Vendredi</option>
-            <option value="6">Samedi</option>
-            <option value="0">Dimanche</option>
-          </Select>
-        
-          <!-- Heure -->
-          <Input
-            type="time"
-            bind:value={scheduleTime}
-            required
-          />
-        
-          <!-- Fenêtre -->
-          <Input
-            type="number"
-            min="1"
-            max="24"
-            bind:value={scheduleWindowHours}
-            placeholder="Durée (h)"
-            required
-          />
-        </div>
-      
-        <p class="text-xs text-gray-500 mt-1">
-          Ex: Tous les lundis à 02:00 pendant 2h
-        </p>
-      </Label>
-
-      <!-- ACTIONS -->
-      <div class="flex justify-end gap-4 pt-4">
-        <Button
-          type="button"
-          class="bg-gray-400"
-          onclick={() => createspModal = false}>
-            Annuler
-        </Button>
-        <Button type="submit" class="bg-option-500">
-          Créer
-        </Button>
-      </div>
-    </form>
-  </Modal>
 {/if}
 
 {#if selectedPool}

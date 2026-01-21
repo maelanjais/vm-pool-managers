@@ -61,6 +61,8 @@ func Start_DB(ctx context.Context) {
 		&models.Image{},
 		&models.Flavor{},
 		&models.Network{},
+		&models.ListStudents{},
+		&models.Student{},
 	)
 
 	syncSequences(Database)
