@@ -1,17 +1,13 @@
 package attribvm
 
 import (
-	"bytes"
 	"context"
 	"control_center/frontcontrolpb"
+	"control_center/internal/sshinject"
 	"control_center/models"
 	"errors"
 	"fmt"
-	"log"
 	"os"
-	"regexp"
-	"strings"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc/codes"
@@ -163,12 +159,12 @@ func (s *Service) AttribVMinPool(
 }
 
 func (s *Service) installSSHKey(server *models.Server, student *models.Student) error {
-	signer, err := loadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
+	signer, err := sshinject.LoadPrivateKey(os.Getenv("SSH_PRIVATE_KEY_PATH"))
 	if err != nil {
 		return err
 	}
 
-	config := sshConfig("vmuser", signer)
+	config := sshinject.SshConfig("vmuser", signer)
 	addr := fmt.Sprintf("%s:22", server.IP_Address)
 
 	client, err := ssh.Dial("tcp", addr, config)
@@ -185,75 +181,15 @@ func (s *Service) installSSHKey(server *models.Server, student *models.Student) 
 	}
 
 	cmd := cmdInit(*student, user)
-	if err := runSSHcmd(client, cmd); err != nil {
+	if err := sshinject.RunSSHcmd(client, cmd); err != nil {
 		return fmt.Errorf("run ssh cmd failed: %w", err)
 	}
 	return nil
 }
 
-func loadPrivateKey(path string) (ssh.Signer, error) {
-	log.Printf("path: %s\n", path)
-	key, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return ssh.ParsePrivateKey(key)
-}
-
-func sshConfig(user string, signer ssh.Signer) *ssh.ClientConfig {
-	return &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
-	}
-}
-
-func runSSHcmd(client *ssh.Client, cmd string) error {
-	session, err := client.NewSession()
-	if err != nil {
-		return fmt.Errorf("new session: %w", err)
-	}
-	defer session.Close()
-
-	var stderr bytes.Buffer
-	var stdout bytes.Buffer
-
-	session.Stdout = &stdout
-	session.Stderr = &stderr
-
-	if err := session.Run(cmd); err != nil {
-		log.Printf("SSH stdout: %s", stdout.String())
-		log.Printf("SSH stderr: %s", stderr.String())
-		if stderr.Len() > 0 {
-			return fmt.Errorf("ssh command error: %s", stderr.String())
-		}
-		return fmt.Errorf("ssh command failed: %w", err)
-	}
-
-	return nil
-}
-
-func usernameFromEmail(email string) string {
-	local := strings.Split(email, "@")[0]
-	local = strings.ToLower(local)
-
-	// remplacer caractères interdits
-	re := regexp.MustCompile(`[^a-z0-9_.-]`)
-	local = re.ReplaceAllString(local, "")
-
-	if len(local) > 32 {
-		local = local[:32]
-	}
-
-	return local
-}
-
 func cmdInit(student models.Student, user models.User) string {
-	studentUsername := usernameFromEmail(student.Name)
-	userUsername := usernameFromEmail(user.Email)
+	studentUsername := sshinject.UsernameFromEmail(student.Name)
+	userUsername := sshinject.UsernameFromEmail(user.Email)
 
 	cmd := fmt.Sprintf(`
 set -e
@@ -321,53 +257,3 @@ create_user "%s" "%s" "prof"
 
 	return cmd
 }
-
-// func cmdInit(student models.Student, user models.User) string {
-// 	studentUsername := usernameFromEmail(student.Name)
-// 	userUsername := usernameFromEmail(user.Email)
-
-// 	cmd := fmt.Sprintf(`
-// set -e
-
-// create_user() {
-//   USERNAME="$1"
-//   PUBKEY="$2"
-//   SUDO="$3"
-
-//   if ! id "$USERNAME" >/dev/null 2>&1; then
-//     sudo useradd -m -s /bin/bash "$USERNAME"
-//   fi
-
-//   HOME="/home/$USERNAME"
-//   SSH="$HOME/.ssh"
-//   AUTH="$SSH/authorized_keys"
-
-//   sudo mkdir -p "$SSH"
-//   sudo chmod 700 "$SSH"
-//   sudo touch "$AUTH"
-//   sudo chmod 600 "$AUTH"
-
-//   if ! sudo grep -qxF "$PUBKEY" "$AUTH"; then
-//     echo "$PUBKEY" | sudo tee -a "$AUTH" > /dev/null
-//   fi
-
-//   if [ "$SUDO" = "true" ]; then
-//     sudo usermod -aG sudo "$USERNAME"
-//   fi
-
-//   sudo chown -R "$USERNAME:$USERNAME" "$SSH"
-// }
-
-// # étudiant (sans sudo)
-// create_user "%s" "%s" "false"
-
-// # prof (avec sudo)
-// create_user "%s" "%s" "true"
-// `,
-// 		studentUsername,
-// 		student.SshKey,
-// 		userUsername,
-// 		user.Keypubuser,
-// 	)
-// 	return cmd
-// }

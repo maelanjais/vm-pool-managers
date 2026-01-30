@@ -6,9 +6,11 @@ import (
 	"control_center/models"
 	"control_center/pb"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -96,6 +98,13 @@ func handleDBServerEvent(server *models.Server, status pb.Status, data map[strin
 			Updates(updates).Error
 		if err != nil {
 			log.Printf("Erreur UPDATE %T : %v", server, err)
+		}
+		if updates["status"] == "ACTIVE" && server.Name == fmt.Sprintf(`%s-%s-NFS`, server.UserID, server.ServerpoolID) {
+			go func(server *models.Server) {
+				if err := retryConfigureSSHUserNFS(server, 5*time.Minute); err != nil {
+					log.Printf("[SSH][FAIL] %s: %v\n", server.IP_Address, err)
+				}
+			}(server)
 		}
 	case pb.Status_DELETE:
 		if err := config.Database.Delete(server).Error; err != nil {
