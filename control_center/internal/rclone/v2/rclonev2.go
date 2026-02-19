@@ -34,7 +34,7 @@ sudo touch /home/%[1]s/.ssh/authorized_keys
 sudo chown "%[1]s":"%[1]s" /home/%[1]s/.ssh/authorized_keys
 sudo chmod 600 /home/%[1]s/.ssh/authorized_keys
 
-if ! sudo grep -qxF "%[2]s" /home/%[1]s/.ssh/authorized_keys; then
+if ! sudo grep -qF "%[2]s" /home/%[1]s/.ssh/authorized_keys; then
     printf "%%s\n" "%[2]s" | sudo tee -a /home/%[1]s/.ssh/authorized_keys > /dev/null
 fi
 `, username, pubKey)
@@ -53,25 +53,35 @@ func ensureStudentFolderWithACLCmd(profname, poolname, student string) string {
 	return fmt.Sprintf(`
 set -e
 
-# Création dossier étudiant
-sudo install -d -m 700 -o "%[3]s" -g "%[3]s" \
-/home/%[1]s/depot/%[2]s/%[3]s
+COURSE_DIR=/home/%[1]s/depot/%[2]s
+STUDENT_DIR=$COURSE_DIR/%[3]s
 
-# ACL : le prof peut tout faire
-sudo setfacl -m u:%[1]s:rwx \
-/home/%[1]s/depot/%[2]s/%[3]s
+# Création du dossier étudiant
+sudo install -d -m 700 -o "%[3]s" -g "%[3]s" "$STUDENT_DIR"
 
-# ACL par défaut : nouveaux fichiers héritent
-sudo setfacl -d -m u:%[1]s:rwx \
-/home/%[1]s/depot/%[2]s/%[3]s
+# ACL : le prof peut tout dans le cours
+sudo setfacl -R -m u:%[1]s:rwx "$COURSE_DIR"
+sudo setfacl -R -d -m u:%[1]s:rwx "$COURSE_DIR"
+
+# ACL : l'étudiant peut tout dans son dossier
+sudo setfacl -R -m u:%[3]s:rwx "$STUDENT_DIR"
+sudo setfacl -R -d -m u:%[3]s:rwx "$STUDENT_DIR"
+
+# ACL : l'étudiant en lecture seule sur les autres dossiers du cours
+for d in "$COURSE_DIR"/*; do
+    if [ "$d" != "$STUDENT_DIR" ]; then
+        sudo setfacl -R -m u:%[3]s:rx "$d"
+        sudo setfacl -R -d -m u:%[3]s:rx "$d"
+    fi
+done
 `, profname, poolname, student)
 }
 
 func linkPoolToStudentCmd(profname, poolname, student string) string {
 	return fmt.Sprintf(`
-sudo chmod 711 /home/%[3]s
-sudo ln -sfn /home/%[1]s/depot/%[2]s \
-/home/%[3]s/depot
+# Linker le cours complet dans le home de l'étudiant
+sudo ln -sfn /home/%[1]s/depot/%[2]s /home/%[3]s/depot
+sudo chown -h %[3]s:%[3]s /home/%[3]s/depot
 `, profname, poolname, student)
 }
 
@@ -124,7 +134,7 @@ sudo chmod 700 /home/%[1]s/depot/%[2]s/%[1]s
 
 // RCLONE CONFIG
 
-func rcloneConfigCmd(username, profname string) string {
+func rcloneConfigCmd(username string) string {
 	return fmt.Sprintf(`
 sudo -u %[1]s mkdir -p /home/%[1]s/.config/rclone
 
@@ -132,14 +142,14 @@ sudo -u %[1]s tee /home/%[1]s/.config/rclone/rclone.conf > /dev/null << EOF
 [depot_%[1]s]
 type = sftp
 host = %[2]s
-user = %[3]s
+user = %[1]s
 key_file = /home/%[1]s/.ssh/id_ed25519
 shell_type = unix
 EOF
 
 sudo chown %[1]s:%[1]s /home/%[1]s/.config/rclone/rclone.conf
 sudo chmod 600 /home/%[1]s/.config/rclone/rclone.conf
-`, username, os.Getenv("IP_ADDRESS"), profname)
+`, username, os.Getenv("IP_ADDRESS"))
 }
 
 func rcloneSystemdCmd(username, poolname string) string {
@@ -156,11 +166,11 @@ Wants=network-online.target
 
 [Service]
 User=%[1]s
-ExecStart=/usr/bin/rclone mount depot_%[1]s:/home/%[1]s/depot/%[2]s /home/%[1]s/depot \
+ExecStart=/usr/bin/rclone mount depot_%[1]s:/home/%[1]s/depot /home/%[1]s/depot \
   --vfs-cache-mode writes \
   --log-file /home/%[1]s/.rclone_mount.log \
   --log-level INFO
-ExecStop=/bin/fusermount -u /home/%[1]s/depot
+ExecStop=/bin/fusermount3 -u /home/%[1]s/depot
 Restart=on-failure
 
 [Install]
@@ -171,7 +181,7 @@ sudo chmod 644 "$SERVICE"
 sudo systemctl daemon-reload
 sudo systemctl enable rclone-depot-%[1]s.service
 sudo systemctl start rclone-depot-%[1]s.service
-`, username, poolname)
+`, username)
 }
 
 // ENTRY POINT
@@ -215,7 +225,7 @@ func InstallRclone(server *models.Server, student *models.Student) error {
 	if err != nil {
 		return fmt.Errorf("readRemotePubKeyCmd failed: %w", err)
 	}
-	// log.Printf("Public key:\n%s", pubkey)
+	log.Printf("Public key:\n%s", pubkey)
 
 	// Create User on local
 	runLocalCmd(createDepotUserCmdSecure(username))
@@ -259,7 +269,7 @@ func InstallRclone(server *models.Server, student *models.Student) error {
 	}
 
 	// Create rclone config on remote VM
-	cmd = rcloneConfigCmd(username, profname)
+	cmd = rcloneConfigCmd(username)
 	log.Println("rcloneConfigCmd")
 	if err := sshinject.RunSSHcmd(client, cmd); err != nil {
 		return fmt.Errorf("rcloneConfigCmd failed: %w", err)

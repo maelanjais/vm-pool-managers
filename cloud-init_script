@@ -1,0 +1,71 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+package_reboot_if_required: false
+
+packages:
+  - build-essential
+  - procps
+  - curl
+  - file
+  - git
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - postgresql
+  - postgresql-contrib
+  - npm
+
+
+runcmd:
+  # ---------- Docker (repo officiel) ----------
+  - |
+    curl -fsSL https://get.docker.com | sh
+    systemctl enable docker
+    systemctl start docker
+    usermod -aG docker ubuntu
+
+  # ---------- Go ----------
+  - |
+    GO_VERSION="1.22.1"
+    curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o /tmp/go.tar.gz
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf /tmp/go.tar.gz
+    echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
+    chmod +x /etc/profile.d/go.sh
+
+  # ---------- rclone ----------
+  - curl -fsSL https://rclone.org/install.sh | bash
+
+  # ---------- Node.js (LTS) ----------
+  - curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+  - apt-get install -y nodejs
+
+  # ---------- gRPC / Protobuf ----------
+  - apt-get install -y protobuf-compiler
+  - |
+    sudo -u ubuntu bash -c '
+      source /etc/profile.d/go.sh
+      go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+      go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    '
+
+  # ---------- ConnectRPC ----------
+  - |
+    sudo -u ubuntu bash -c '
+      source /etc/profile.d/go.sh
+      go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+    '
+
+  # ---------- Task ----------
+  - |
+    curl -fsSL https://taskfile.dev/install.sh | sh -s -- -b /usr/local/bin
+
+  # ---------- NVM ----------
+  - |
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    source ~/.bashrc
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
