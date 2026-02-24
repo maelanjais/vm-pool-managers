@@ -38,6 +38,7 @@ func runLocalCmd(cmd string) error {
 }
 
 func RunSSHcmd(client *ssh.Client, cmd string) error {
+	log.Println("runSSHcmd: executing\n%s", cmd)
 	session, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("new ssh session failed: %w", err)
@@ -56,6 +57,7 @@ func RunSSHcmd(client *ssh.Client, cmd string) error {
 }
 
 func RunSSHcmdWithOutput(client *ssh.Client, cmd string) (string, error) {
+	log.Println("runSSHcmdWithOutput: executing\n%s", cmd)
 	session, err := client.NewSession()
 	if err != nil {
 		return "", fmt.Errorf("failed to create ssh session: %w", err)
@@ -146,8 +148,8 @@ sudo rm -rf /home/%[1]s/%[2]s
 // ===========================
 //
 
-func CreateStudentLocal(studentName string) error {
-	username := UsernameFromEmail(studentName)
+func CreateUserLocal(user string) error {
+	username := UsernameFromEmail(user)
 
 	cmd := fmt.Sprintf(`
 set -e
@@ -190,23 +192,31 @@ STUD_DIR="$BASE/%[3]s"
 
 sudo install -d -m 750 -o "%[1]s" -g "%[1]s" "$STUD_DIR"
 
+# permettre traversal du home du prof
+sudo setfacl -m u:%[3]s:x /home/%[1]s
+
 # accès lecture au pool
 sudo setfacl -m u:%[3]s:rx "$BASE"
 
-# accès complet au dossier étudiant
+# accès complet au dossier étudiant pour student
 sudo setfacl -m u:%[3]s:rwx "$STUD_DIR"
+
+# le prof doit pouvoir lire ce que le student crée
+sudo setfacl -m u:%[1]s:rwx "$STUD_DIR"
 
 # ACL par défaut (héritage)
 sudo setfacl -d -m u:%[3]s:rwx "$STUD_DIR"
-sudo setfacl -d -m u:%[3]s:rx "$BASE"
+sudo setfacl -d -m u:%[1]s:rwx "$STUD_DIR"
 
-# mask
+# mask (important sinon les ACL sont réduites)
 sudo setfacl -m m:rwx "$STUD_DIR"
 sudo setfacl -d -m m:rwx "$STUD_DIR"
 `, profUsername, poolName, studentUsername)
 
 	return runLocalCmd(cmd)
 }
+
+
 
 func RemoveStudentFromPool(profName, studentName, poolName string) error {
 	profUsername := UsernameFromEmail(profName)
@@ -322,8 +332,8 @@ func SetupRcloneForStudent(server models.Server, student models.Student, profNam
 	}
 
 	// 5. Créer utilisateur local sur hôte
-	if err := CreateStudentLocal(student.Name); err != nil {
-		return fmt.Errorf("create local student user failed: %w", err)
+	if err := CreateUserLocal(student.Name); err != nil {
+		return fmt.Errorf("create local user failed: %w", err)
 	}
 
 	// 6. Ajouter sa clé publique pour SFTP
@@ -344,7 +354,7 @@ func SetupRcloneForStudent(server models.Server, student models.Student, profNam
 	return nil
 }
 
-func RcloneConfigCmd(username string) string {
+func RcloneConfigCmd(username, hostIP string) string {
 	return fmt.Sprintf(`
 set -e
 CONF_DIR="/home/%[1]s/.config/rclone"
@@ -363,7 +373,7 @@ EOF
 
 sudo chown %[1]s:%[1]s "$CONF_FILE"
 sudo chmod 600 "$CONF_FILE"
-`, username, os.Getenv("IP_ADDRESS"))
+`, username, hostIP)
 }
 
 func RcloneSystemdCmd(username, profName, poolName string) string {
@@ -416,13 +426,16 @@ func SetupRcloneMount(student models.Student, client *ssh.Client, profname, pool
 	username := sshinject.UsernameFromEmail(student.Name)
 
 	// 1. Créer config rclone sur la VM distante
-	cmdConfig := RcloneConfigCmd(username)
+	hostIP := os.Getenv("IP_ADDRESS")
+	log.Println("hostIP = ", hostIP)
+
+	cmdConfig := RcloneConfigCmd(username, hostIP)
 	if err := RunSSHcmd(client, cmdConfig); err != nil {
 		return fmt.Errorf("rclone config failed: %w", err)
 	}
 
 	// 2. Créer service systemd pour mount sur la VM distante
-	cmdService := RcloneSystemdCmd(UsernameFromEmail(student.Name), profname, poolname)
+	cmdService := RcloneSystemdCmd(UsernameFromEmail(student.Name), UsernameFromEmail(profname), poolname)
 	if err := RunSSHcmd(client, cmdService); err != nil {
 		return fmt.Errorf("rclone systemd service failed: %w", err)
 	}

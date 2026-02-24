@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"control_center/frontcontrolpb"
+	"control_center/internal/rclone"
 	"control_center/models"
 	"control_center/pb"
 
@@ -61,6 +62,12 @@ func (s *Service) CreateUser(
 			Success: false,
 			UserId:  "",
 		}, fmt.Errorf("failed to notify PoolManager: %v", err)
+	}
+	if err := rclone.CreateUserLocal(u.Email); err != nil {
+		return &frontcontrolpb.CreateUserResponse{
+			Success: false,
+			UserId:  "",
+		}, fmt.Errorf("create local user failed: %v", err)
 	}
 	return &frontcontrolpb.CreateUserResponse{
 		Success: true,
