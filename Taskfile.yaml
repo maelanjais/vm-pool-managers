@@ -22,7 +22,18 @@ tasks:
     - 'go get github.com/charmbracelet/huh@latest'
     - 'go run config.go'
     - task check_clouds
+    - task init_control
+    - task init_micro
 
+  init_control:
+    dir: control_center
+    cmds:
+      - '[ ! -f go.mod ] && go mod init control_center || echo "go.mod exists"'
+
+  init_micro:
+    dir: microservices/openstack
+    cmds:
+      - '[ ! -f go.mod ] && go mod init PoolManagerVM/backend || echo "go.mod exists"'
 
   build:
     desc: build the binary file for the backend
