@@ -19,9 +19,7 @@ type Server struct {
 	Metadata       JSONStringMap   `gorm:"type:text"`
 	ServerpoolID   string
 	UserID         string
-	AttachVolumeID string
-	VolPending     bool `gorm:"default:false; not null"`
-	Reattrib       bool `gorm:"default:false; not null"`
+	Reattrib bool `gorm:"default:false; not null"`
 	Progress       int  `gorm:"default:0; not null"`
 	ConfigID       int
 	IP_Address     string
@@ -40,9 +38,7 @@ func (s *Server) ToMap() map[string]string {
 		"image_ref":     s.ImageRef,
 		"serverpool_id": s.ServerpoolID,
 		"user_id":       s.UserID,
-		"attach_volume": s.AttachVolumeID,
-		"vol_pending":   fmt.Sprintf("%t", s.VolPending),
-		"reattrib":      fmt.Sprintf("%t", s.Reattrib),
+		"reattrib": fmt.Sprintf("%t", s.Reattrib),
 		"progress":      fmt.Sprintf("%d", s.Progress),
 		"config_id":     fmt.Sprintf("%d", s.ConfigID),
 	}
@@ -70,11 +66,6 @@ func (s *Server) FromPb(pbs *pb.StreamRessourceResponse) {
 	s.ImageRef = pbs.Data["image_ref"]
 	s.ServerpoolID = pbs.Data["serverpool_id"]
 	s.UserID = pbs.Data["user_id"]
-	s.AttachVolumeID = pbs.Data["attach_volume"]
-
-	if v, ok := pbs.Data["vol_pending"]; ok {
-		s.VolPending = (v == "true")
-	}
 	if v, ok := pbs.Data["reattrib"]; ok {
 		s.Reattrib = (v == "true")
 	}

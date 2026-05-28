@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"gorm.io/gorm"
 )
 
@@ -30,8 +29,6 @@ func Monitor(c context.Context) {
 
 		case <-ticker.C:
 			CheckAndCreate()
-			attachVolume()
-			volnotattached()
 		}
 	}
 }
@@ -73,11 +70,6 @@ func CheckAndCreate() {
 			}
 		}
 		missing := p.MinVM - (count + p.PendingJobs)
-		// if p.Pendingnfs == false && p.IPAddressNFS == "" && p.UserID != "admin" && p.ServerpoolID != "" {
-		// 	jobs.ChangePendingNFS(p.ID)
-		// 	worker.AddJob(*worker.CreateJob(models.CreateNFSVM,
-		// 		utils.BuildDataMap(utils.FlatstringSP(p))), false)
-		// }
 		if !shouldStartPool(p.TimeStart) {
 			continue
 		}
@@ -180,72 +172,6 @@ func CreateServerpoolFromEnv() (models.Serverpool, error) {
 	return pool, nil
 }
 
-func attachVolume() {
-	allServ, err := utils.GetAllServers()
-	if err != nil {
-		log.Println("Failed to get all servers:", err)
-		return
-	}
-	config.DBmu.Lock()
-	for _, serv := range allServ {
-		var server models.Server
-		if err := config.Database.Select("vol_pending").
-			Where("id = ?", serv.ID).First(&server).Error; err != nil {
-			log.Println("Error fetching updated vol_pending:", err)
-			config.DBmu.Unlock()
-			return
-		}
-		if utils.NoVolAttached(serv) &&
-			utils.NoVolAttachedDB(models.FromGopherServer(serv),
-				config.Database) &&
-			serv.Status == "ACTIVE" &&
-			!server.VolPending {
-			jobs.ChangePendingVol(serv.ID)
-			worker.AddJob(*worker.CreateJob(models.CreateVolumeAndAttach,
-				map[string]string{
-					"size":        os.Getenv("VOLUME_SIZE"),
-					"description": os.Getenv("VOLUME_DESCRIPTION"),
-					"name":        fmt.Sprintf(`%s-Volume`, serv.Name),
-					"volume_type": os.Getenv("VOLUME_TYPE"),
-					"server_id":   serv.ID,
-				}), false)
-		}
-	}
-	config.DBmu.Unlock()
-}
-
-func volnotattached() {
-	allVol := utils.GetAllVolumes(context.Background())
-	if allVol == nil {
-		log.Println("Failed to get all volumes")
-		return
-	}
-	for _, vol := range allVol {
-		if len(vol.Attachments) == 0 && vol.Status == "available" &&
-			!servstillinuse(vol) {
-			worker.AddJob(*worker.CreateJob(models.DeleteVolume,
-				map[string]string{
-					"instance_id": vol.ID,
-				}), false)
-		}
-	}
-}
-
-func servstillinuse(v volumes.Volume) bool {
-	allserv, err := utils.GetAllServers()
-	if err != nil {
-		log.Println("Failed to get all servers:", err)
-		return true
-	}
-	for _, serv := range allserv {
-		if v.Metadata["instance_id"] == serv.ID {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldStartPool(timestart string) bool {
-	// Bypass time window: always return true so VMs are created immediately
+func shouldStartPool(_ string) bool {
 	return true
 }

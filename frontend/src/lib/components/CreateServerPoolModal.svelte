@@ -45,31 +45,66 @@
     filterImagesByPrefix: (images: Image[], prefix: string) => Image[];
   } = $props();
 
-  const jupyterEnvs = [
-    { label: 'Python scientifique (scipy-notebook)',    config: 'jupyter-scipy' },
-    { label: 'Python scientifique+ (scipy-plus)',       config: 'jupyter-scipy-plus' },
-    { label: 'Data Science (Python + R + Julia)',       config: 'jupyter-datascience' },
-    { label: 'Julia',                                   config: 'jupyter-julia' },
-    { label: 'BIO583',                                  config: 'jupyter-bio583' },
-    { label: 'ECO589',                                  config: 'jupyter-eco589' },
-    { label: 'Computational Economics',                 config: 'jupyter-compeco' },
-    { label: 'MEC431',                                  config: 'jupyter-mec431' },
-    { label: 'MEC558',                                  config: 'jupyter-mec558' },
-  ];
+  // Maps snapshot suffix → human label
+  const jupyterSnapshotLabels: Record<string, string> = {
+    'scipy':       'Python scientifique (scipy-notebook)',
+    'scipy-plus':  'Python scientifique+',
+    'datascience': 'Data Science (Python + R + Julia)',
+    'julia':       'Julia',
+    'bio583':      'BIO583',
+    'eco589':      'ECO589',
+    'compeco':     'Computational Economics',
+    'mec431':      'MEC431',
+    'mec558':      'MEC558',
+    'map579':      'MAP579',
+    'mec552a':     'MEC552A',
+    'mec552b':     'MEC552B',
+    'mec568':      'MEC568',
+    'mec581':      'MEC581',
+    'mec666':      'MEC666',
+  };
 
-  let selectedJupyterEnv = $state('');
+  function getJupyterSnapshots(): { id: string; label: string }[] {
+    return images
+      .filter(i => i.name.startsWith('jupyter-snapshot-'))
+      .map(i => {
+        const suffix = i.name.replace('jupyter-snapshot-', '');
+        return { id: i.id, label: jupyterSnapshotLabels[suffix] ?? suffix };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
 
-  $effect(() => {
-    const img = images.find(i => i.id === selectedImage);
-    if (!img?.name?.includes('docker')) {
-      selectedJupyterEnv = '';
+  const JUPYTER_GROUP = 'JupyterHub';
+
+  function getImageGroups(): string[] {
+    // Exclude jupyter-snapshot-* and any jupyterhub* images from regular groups
+    const regular = images.filter(i =>
+      !i.name.startsWith('jupyter-snapshot-') &&
+      !i.name.toLowerCase().startsWith('jupyterhub')
+    );
+    const groups = getUniqueFirstAlphaBlocks(regular);
+    if (getJupyterSnapshots().length > 0) {
+      return [JUPYTER_GROUP, ...groups];
     }
-  });
+    return groups;
+  }
 
-  function onJupyterEnvChange(env: string) {
-    selectedJupyterEnv = env;
-    selectedConfigFile = env;
-    appPort = env ? 8888 : 0;
+  function onGroupChange(group: string) {
+    selectedGroupImage = group;
+    selectedImage = null;
+    appPort = 0;
+    selectedConfigFile = '';
+  }
+
+  function onJupyterSnapshotChange(imgId: string) {
+    selectedImage = imgId;
+    appPort = 8888;
+    // Auto-select the matching autostart config (jupyter-snapshot-{suffix})
+    const img = images.find(i => i.id === imgId);
+    if (img) {
+      const suffix = img.name.replace('jupyter-snapshot-', '');
+      selectedConfigFile = `jupyter-snapshot-${suffix}`;
+    }
   }
 
   const offDayLabels: { key: keyof typeof offDays; label: string }[] = [
@@ -203,39 +238,30 @@
 
             <div class="space-y-1.5">
               <label class="section-label">Système d'exploitation</label>
-              <select class="field" bind:value={selectedGroupImage} required>
+              <select class="field" value={selectedGroupImage ?? ''} onchange={(e) => onGroupChange((e.target as HTMLSelectElement).value)} required>
                 <option disabled selected value="">Famille d'OS…</option>
-                {#each getUniqueFirstAlphaBlocks(images) as prefix}
-                  <option value={prefix}>{prefix}</option>
+                {#each getImageGroups() as group}
+                  <option value={group}>{group}</option>
                 {/each}
               </select>
-              {#if selectedGroupImage}
+
+              {#if selectedGroupImage === JUPYTER_GROUP}
+                <select class="field mt-2" value={selectedImage ?? ''} onchange={(e) => onJupyterSnapshotChange((e.target as HTMLSelectElement).value)} required>
+                  <option disabled selected value="">Environnement Jupyter…</option>
+                  {#each getJupyterSnapshots() as snap}
+                    <option value={snap.id}>{snap.label}</option>
+                  {/each}
+                </select>
+                <p class="text-xs text-neutral-400">Port 8888 activé automatiquement · image Docker pré-installée</p>
+              {:else if selectedGroupImage}
                 <select class="field mt-2" bind:value={selectedImage} required>
                   <option disabled selected value="">Version exacte…</option>
-                  {#each filterImagesByPrefix(images, selectedGroupImage) as img}
+                  {#each filterImagesByPrefix(images.filter(i => !i.name.startsWith('jupyter-snapshot-') && !i.name.toLowerCase().startsWith('jupyterhub')), selectedGroupImage) as img}
                     <option value={img.id}>{img.name}{img.minDiskGigabytes > 0 ? ` (${img.minDiskGigabytes} GB requis)` : ''}</option>
                   {/each}
                 </select>
               {/if}
             </div>
-
-            {#if images.find(i => i.id === selectedImage)?.name?.includes('docker')}
-              <div class="space-y-1.5 animate-fade-in">
-                <label class="section-label">
-                  <svg class="w-3.5 h-3.5 inline mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                  </svg>
-                  Environnement Jupyter
-                </label>
-                <select class="field" value={selectedJupyterEnv} onchange={(e) => onJupyterEnvChange((e.target as HTMLSelectElement).value)} required>
-                  <option value="" disabled selected>Choisir un environnement…</option>
-                  {#each jupyterEnvs as env}
-                    <option value={env.config}>{env.label}</option>
-                  {/each}
-                </select>
-                <p class="text-xs text-neutral-400">Port 8888 activé automatiquement</p>
-              </div>
-            {/if}
 
             <div class="space-y-1.5">
               <label class="section-label">Réseau</label>

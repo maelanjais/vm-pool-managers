@@ -83,18 +83,12 @@ func CreateVM(workerID int, job models.Job) error {
 		log.Printf("[Worker %d] Injecting vm-registrar agent into cloud-init", workerID)
 	}
 
-	if pool.IPAddressNFS != "" {
-		userData, err = buildUserData(
-			baseUserConfig(sshkey),
-			conf_file.Data,
-			registrarScript)
-	} else {
-		userData, err = buildUserData(
-			baseUserConfig(sshkey),
-			conf_file.Data,
-			registrarScript,
-		)
+	baseCfg := baseUserConfig(sshkey)
+	if strings.HasPrefix(job.Data["config_id"], "jupyter-snapshot-") {
+		baseCfg = baseUserConfigSnapshot(sshkey)
 	}
+
+	userData, err = buildUserData(baseCfg, conf_file.Data, registrarScript)
 
 	configDrive := true
 	createOpts := servers.CreateOpts{

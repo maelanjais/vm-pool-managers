@@ -63,24 +63,6 @@ func processJob(workerID int, job models.Job) {
 		} else {
 			log.Println("VM deleted successfully:", instanceID)
 		}
-	case models.CreateVolumeAndAttach:
-		err := jobs.CreateVolumeAndAttach(workerID, job)
-		if err != nil {
-			log.Println("Failed to create and attach volume:", err)
-		} else {
-			log.Println("Volume created and attached successfully")
-		}
-
-	case models.DeleteVolume:
-		instanceID := job.Data["instance_id"]
-		err := jobs.DeleteVolume(instanceID)
-		if err != nil {
-			log.Println("Failed to delete Volume:", err)
-		} else {
-			log.Println("Volume deleted successfully:", instanceID)
-		}
-	case models.CreateNFSVM:
-		jobs.CreateNFSVM(workerID, job)
 	}
 }
 

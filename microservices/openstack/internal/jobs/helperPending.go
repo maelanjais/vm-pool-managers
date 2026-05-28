@@ -27,24 +27,3 @@ func DecrementPending(ServerpoolID uint) {
 		log.Println("Error: ", result.Error)
 	}
 }
-
-func ChangePendingVol(serverID string) {
-	res := config.Database.Model(&models.Server{}).
-		Where("id = ?", serverID).
-		UpdateColumn("vol_pending", gorm.Expr("NOT vol_pending"))
-
-	if res.Error != nil {
-		log.Println("Error: ", res.Error)
-	}
-
-}
-
-func ChangePendingNFS(ServerpoolID uint) {
-	result := config.Database.Model(&models.Serverpool{}).
-		Where("id = ?", ServerpoolID).
-		UpdateColumn("pendingnfs", gorm.Expr("NOT pendingnfs"))
-
-	if result.Error != nil {
-		log.Println("Error: ", result.Error)
-	}
-}

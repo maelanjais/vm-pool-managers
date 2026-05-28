@@ -20,13 +20,14 @@
   let rawInput = $state('');
 
   interface User { name: string; sshKey: string; ip: string; }
-  interface NewStudent { login: string; sshKey: string; }
+  interface NewStudent { firstName: string; lastName: string; sshKey: string; }
 
   let users: User[] = $state([]);
-  let newStudents: NewStudent[] = $state([{ login: '', sshKey: '' }]);
+  let newStudents: NewStudent[] = $state([{ firstName: '', lastName: '', sshKey: '' }]);
 
-  function addRow() { newStudents = [...newStudents, { login: '', sshKey: '' }]; }
+  function addRow() { newStudents = [...newStudents, { firstName: '', lastName: '', sshKey: '' }]; }
   function removeRow(i: number) { newStudents = newStudents.filter((_, idx) => idx !== i); }
+  function buildLogin(s: NewStudent): string { return `${s.firstName.trim()}.${s.lastName.trim()}`.toLowerCase(); }
 
   async function handleListStudents() {
     const req: ListStudentsRequest = create(ListStudentsRequestSchema, { user: $authStore?.email, poolname });
@@ -52,17 +53,17 @@
   }
 
   async function handleAdd() {
-    const valid = newStudents.filter(s => s.login.trim() && s.sshKey.trim());
+    const valid = newStudents.filter(s => s.firstName.trim() && s.lastName.trim() && s.sshKey.trim());
     if (!valid.length) { error = 'Aucun étudiant valide à ajouter.'; return; }
     const req: AddStudentRequest = create(AddStudentRequestSchema, {
       user: $authStore?.email, poolname,
-      students: valid.map(s => ({ name: s.login, sshKey: s.sshKey })),
+      students: valid.map(s => ({ name: buildLogin(s), sshKey: s.sshKey })),
     });
     try {
       loading = true; error = null;
       await addStudents(req);
       await handleListStudents();
-      newStudents = [{ login: '', sshKey: '' }];
+      newStudents = [{ firstName: '', lastName: '', sshKey: '' }];
       addModal = false;
     } catch { error = "Erreur lors de l'ajout."; }
     finally { loading = false; }
@@ -74,20 +75,24 @@
     for (const line of lines) {
       const sep = line.indexOf(';');
       if (sep === -1) continue;
-      const login = line.slice(0, sep).trim();
+      const loginRaw = line.slice(0, sep).trim();
       const sshKey = line.slice(sep + 1).trim();
-      if (login && sshKey) parsed.push({ login, sshKey });
+      if (!loginRaw || !sshKey) continue;
+      const dotIdx = loginRaw.indexOf('.');
+      const firstName = dotIdx !== -1 ? loginRaw.slice(0, dotIdx) : loginRaw;
+      const lastName = dotIdx !== -1 ? loginRaw.slice(dotIdx + 1) : '';
+      parsed.push({ firstName, lastName, sshKey });
     }
     if (!parsed.length) { error = 'Aucun étudiant valide (format: prenom.nom;cle_ssh)'; return; }
     newStudents = parsed;
     await handleAdd();
     rawInput = '';
-    newStudents = [{ login: '', sshKey: '' }];
+    newStudents = [{ firstName: '', lastName: '', sshKey: '' }];
     addModal = false;
   }
 
   $effect(() => { if (open) handleListStudents(); });
-  $effect(() => { if (rawMode) newStudents = [{ login: '', sshKey: '' }]; });
+  $effect(() => { if (rawMode) newStudents = [{ firstName: '', lastName: '', sshKey: '' }]; });
 </script>
 
 <!-- Main modal -->
@@ -204,18 +209,23 @@
           </button>
         </div>
       {:else}
-        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+        <div class="space-y-3 max-h-72 overflow-y-auto pr-1">
           {#each newStudents as student, i}
-            <div class="flex gap-2 items-center">
-              <input class="field flex-1" type="text" placeholder="prenom.nom" bind:value={student.login} />
-              <input class="field flex-1" type="text" placeholder="ssh-ed25519 AAAA..." bind:value={student.sshKey} />
-              {#if newStudents.length > 1}
-                <button onclick={() => removeRow(i)} class="btn btn-danger p-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              {/if}
+            <div class="p-3 rounded border border-neutral-200 bg-neutral-50 space-y-2">
+              <div class="flex gap-2">
+                <input class="field flex-1" type="text" placeholder="Prénom" bind:value={student.firstName} />
+                <input class="field flex-1" type="text" placeholder="Nom" bind:value={student.lastName} />
+              </div>
+              <div class="flex gap-2">
+                <input class="field flex-1 font-mono text-xs" type="text" placeholder="ssh-ed25519 AAAA..." bind:value={student.sshKey} />
+                {#if newStudents.length > 1}
+                  <button onclick={() => removeRow(i)} class="btn btn-danger p-2 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                {/if}
+              </div>
             </div>
           {/each}
         </div>

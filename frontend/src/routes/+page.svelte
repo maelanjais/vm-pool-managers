@@ -12,6 +12,25 @@
   let errorMsg = $state("");
   let noCoursFound = $state(false);
   let copied = $state(false);
+  let appReady = $state(false);
+  let probing = $state(false);
+  let probeInterval: ReturnType<typeof setInterval> | null = null;
+
+  function startProbing(ip: string, port: number) {
+    appReady = false;
+    probing = true;
+    probeInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/app-status?ip=${encodeURIComponent(ip)}&port=${port}`);
+        const data = await res.json();
+        if (data.ready) {
+          appReady = true;
+          probing = false;
+          if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+        }
+      } catch { /* keep trying */ }
+    }, 3000);
+  }
 
   function fallbackCopy(text: string) {
     const el = document.createElement('textarea');
@@ -54,6 +73,8 @@
 
   async function assignVM(pool: { pool_id: string; user_id: string }) {
     selectedPool = pool; loading = true; errorMsg = ""; vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = "";
+    appReady = false; probing = false;
+    if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
     try {
       const result = await attribVMinPool(pool.pool_id, pool.user_id, sshkey);
       vmIp = result.ip;
@@ -63,6 +84,7 @@
         .then(r => r.json())
         .then(data => { if (data.url) guacUrl = data.url; })
         .catch(() => {});
+      if (vmAppPort > 0) startProbing(result.ip, vmAppPort);
     } catch (err: any) {
       errorMsg = err?.message || "Erreur lors de l'attribution de la VM.";
     } finally { loading = false; }
@@ -161,25 +183,36 @@
         </span>
         <h1 class="text-3xl font-bold text-primary-800" style="font-family: 'Source Sans 3', sans-serif;">VM attribuée</h1>
       </div>
-      <p class="text-sm text-neutral-500 ml-6">Votre environnement est prêt.</p>
+      <p class="text-sm text-neutral-500 ml-6">
+        {#if vmAppPort > 0 && !appReady}Démarrage en cours…{:else}Votre environnement est prêt.{/if}
+      </p>
     </div>
 
     <div class="card p-6 space-y-5 animate-fade-in">
 
       {#if vmAppPort > 0}
-        <a
-          href="http://{vmIp}:{vmAppPort}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-lg font-semibold text-base
-            bg-amber-500 hover:bg-amber-400 text-white transition-all shadow-sm hover:shadow-md"
-        >
-          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-          </svg>
-          Ouvrir l'application (port {vmAppPort})
-        </a>
+        {#if appReady}
+          <a
+            href="http://{vmIp}:{vmAppPort}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-lg font-semibold text-base
+              bg-amber-500 hover:bg-amber-400 text-white transition-all shadow-sm hover:shadow-md"
+          >
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            </svg>
+            Ouvrir l'application (port {vmAppPort})
+          </a>
+        {:else}
+          <div class="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-lg font-semibold text-base
+            bg-neutral-200 text-neutral-500 cursor-not-allowed select-none">
+            <span class="w-4 h-4 border-2 border-neutral-400/40 border-t-neutral-500 rounded-full shrink-0"
+              style="animation: spinnerGlow 0.8s linear infinite;"></span>
+            Démarrage de l'application…
+          </div>
+        {/if}
       {/if}
 
       {#if guacUrl}
@@ -235,7 +268,11 @@
       </div>
 
       <button
-        onclick={() => { vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = ""; availablePools = []; sshkey = ""; }}
+        onclick={() => {
+        vmIp = ""; vmUser = ""; vmAppPort = 0; guacUrl = ""; availablePools = []; sshkey = "";
+        appReady = false; probing = false;
+        if (probeInterval) { clearInterval(probeInterval); probeInterval = null; }
+      }}
         class="btn btn-secondary text-sm"
       >
         ← Retour

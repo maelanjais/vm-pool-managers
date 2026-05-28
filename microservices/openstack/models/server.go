@@ -24,9 +24,7 @@ type Server struct {
 	ServerpoolID   string
 	UserID         string
 	ServerPool     *Serverpool `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
-	AttachVolumeID string
-	VolPending     bool `gorm:"default:false; not null"`
-	Reattrib       bool `gorm:"default:false; not null"`
+	Reattrib bool `gorm:"default:false; not null"`
 	Progress       int  `gorm:"default:0; not null"`
 	ConfigID       string
 }
@@ -40,9 +38,7 @@ func (s *Server) ToMap() map[string]string {
 		"image_ref":     s.ImageRef,
 		"serverpool_id": s.ServerpoolID,
 		"user_id":       s.UserID,
-		"attach_volume": s.AttachVolumeID,
-		"vol_pending":   fmt.Sprintf("%t", s.VolPending),
-		"reattrib":      fmt.Sprintf("%t", s.Reattrib),
+		"reattrib": fmt.Sprintf("%t", s.Reattrib),
 		"progress":      fmt.Sprintf("%d", s.Progress),
 		"config_id":     s.ConfigID,
 		"ip_address":    s.IP_Address,
@@ -130,15 +126,6 @@ func (s *Server) IsEqual(other Server) bool {
 		s.UserID != other.UserID {
 		return false
 	}
-
-	// if len(s.Networks) != len(other.Networks) {
-	// 	return false
-	// }
-	// for i, v := range s.Networks {
-	// 	if v != other.Networks[i] {
-	// 		return false
-	// 	}
-	// }
 
 	if len(s.Metadata) != len(other.Metadata) {
 		return false

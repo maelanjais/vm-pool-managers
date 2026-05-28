@@ -21,11 +21,9 @@ type Serverpool struct {
 	MaxVM        int
 	PendingJobs  int
 	ListServ     []Server `gorm:"foreignKey:ServerpoolID,UserID;references:ServerpoolID,UserID"`
-	ConfigID     string
-	NetworkUuid  string
-	Pendingnfs   bool `gorm:"default:false; not null"`
-	IPAddressNFS string
-	TimeStart    string
+	ConfigID    string
+	NetworkUuid string
+	TimeStart   string
 }
 
 func (sp *Serverpool) ToMap() map[string]string {
