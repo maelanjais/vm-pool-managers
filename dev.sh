@@ -61,10 +61,16 @@ start_one() {
       sudo nohup "$CADDY_BIN" run --config "$ROOT/caddy/Caddyfile.native" --adapter caddyfile \
         >"$LOGDIR/caddy.log" 2>&1 & ;;
     guac)
-      # Tunnel SSH vers le Guacamole distant : expose 0.0.0.0:18080 -> remote:8080
+      # Tunnel SSH auto-reconnectant vers le Guacamole distant (0.0.0.0:18080 -> remote:8080).
+      # La boucle relance ssh dès qu'il tombe (coupure réseau, timeout…).
       pkill -f "18080:127.0.0.1:8080" 2>/dev/null || true
-      nohup ssh -N -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
-        -L 0.0.0.0:18080:127.0.0.1:8080 "$GUAC_HOST" >"$LOGDIR/guac.log" 2>&1 & echo $! >"$LOGDIR/guac.pid" ;;
+      nohup bash -c "while true; do \
+        echo \"[guac] \$(date '+%H:%M:%S') connexion du tunnel…\"; \
+        ssh -N -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \
+          -L 0.0.0.0:18080:127.0.0.1:8080 $GUAC_HOST; \
+        echo \"[guac] \$(date '+%H:%M:%S') tunnel tombé, reconnexion dans 5s…\"; \
+        sleep 5; \
+      done" >"$LOGDIR/guac.log" 2>&1 & echo $! >"$LOGDIR/guac.pid" ;;
     auth)
       ( cd "$ROOT" && task auth >"$LOGDIR/auth.log" 2>&1 ) \
         && echo "${c_grn}✓ auth (docker)${c_off}" || echo "${c_yel}! auth: voir .devlogs/auth.log${c_off}"
@@ -77,6 +83,8 @@ start_one() {
 stop_one() {
   local svc="$1" p; p="$(port_of "$svc")"
   [ "$svc" = auth ] && { ( cd "$ROOT" && task auth:stop >/dev/null 2>&1 ); echo "→ auth arrêté"; return 0; }
+  # guac = boucle de reconnexion + ssh ; le motif du tunnel matche les deux.
+  [ "$svc" = guac ] && { pkill -f "18080:127.0.0.1:8080" 2>/dev/null; rm -f "$LOGDIR/guac.pid"; echo "→ guac arrêté"; return 0; }
   [ -f "$LOGDIR/$svc.pid" ] && { kill "$(cat "$LOGDIR/$svc.pid")" 2>/dev/null; rm -f "$LOGDIR/$svc.pid"; }
   [ -n "$p" ] && kill_port "$p"
   echo "→ $svc arrêté"
