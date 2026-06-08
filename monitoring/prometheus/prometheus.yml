@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # Métriques d'usage du Control Center (/metrics, exposées via Caddy en HTTPS).
+  # ⚠️ Remplacer le host par l'IP/domaine public du Control Center si besoin.
+  - job_name: control-center
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true   # certificat Caddy auto-signé
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["129.104.125.190"]
+        labels:
+          service: control-center
+
+  # Prometheus lui-même (santé de la stack).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

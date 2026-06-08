@@ -22,6 +22,7 @@ import (
 	"time"
 
 	grpcweb "github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -149,7 +150,9 @@ func Start_grpc(ctx context.Context) {
 		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
 	)
 
+	registerMetrics()
 	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/api/inventory", handleInventory)
 	mux.HandleFunc("/api/vm-activity", handleVMActivity)
 	mux.HandleFunc("/api/guac-url", handleGuacURL)
@@ -179,7 +182,8 @@ func Start_grpc(ctx context.Context) {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/api/") ||
 				strings.HasPrefix(r.URL.Path, "/auth/") ||
-				r.URL.Path == "/vm-registrar" {
+				r.URL.Path == "/vm-registrar" ||
+				r.URL.Path == "/metrics" {
 				mux.ServeHTTP(w, r)
 				return
 			}

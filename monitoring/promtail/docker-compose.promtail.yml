@@ -1,0 +1,19 @@
+# À lancer sur la machine qui héberge les services (control center, microservice…).
+# Pousse les logs de .devlogs/ vers Loki (sur la VM infra).
+#   LOKI_HOST=<ip VM infra> docker compose -f docker-compose.promtail.yml up -d
+services:
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
+    environment:
+      LOKI_HOST: ${LOKI_HOST:?définir LOKI_HOST (IP de la VM infra)}
+      PROMTAIL_HOST_LABEL: ${PROMTAIL_HOST_LABEL:-dev}
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - ../../.devlogs:/logs:ro
+      - promtail-positions:/tmp
+
+volumes:
+  promtail-positions:

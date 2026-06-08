@@ -27,6 +27,11 @@
         reverse_proxy localhost:50055
     }
 
+    # ---------- Métriques Prometheus (scrape par la VM d'observabilité) ----------
+    handle /metrics {
+        reverse_proxy localhost:50055
+    }
+
     handle /auth/callback {
         reverse_proxy localhost:5173
     }

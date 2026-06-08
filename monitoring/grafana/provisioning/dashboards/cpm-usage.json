@@ -1,0 +1,69 @@
+{
+  "uid": "cpm-usage",
+  "title": "CloudPoolManager — Usage",
+  "tags": ["cloudpoolmanager"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Serverpools",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_pools_total", "refId": "A" } ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 2, "type": "stat", "title": "VMs actives (étudiants connectés)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_vms_active", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Étudiants",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_students_total", "refId": "A" } ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Connexions GitHub (24 h)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_github_sessions_24h", "refId": "A" } ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "VMs actives dans le temps (heures de pointe)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_vms_active", "refId": "A", "legendFormat": "VMs actives" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20, "lineWidth": 2 } } }
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "VMs par statut",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_servers", "refId": "A", "legendFormat": "{{status}}" } ],
+      "fieldConfig": { "defaults": { "custom": { "stacking": { "mode": "normal" }, "fillOpacity": 30 } } }
+    },
+    {
+      "id": 7, "type": "bargauge", "title": "Étudiants par pool",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_pool_students", "refId": "A", "legendFormat": "{{pool}} ({{owner}})", "instant": true } ],
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Connexions GitHub (24 h glissantes)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus" },
+      "targets": [ { "expr": "cpm_github_sessions_24h", "refId": "A", "legendFormat": "sessions 24h" } ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 20 } } }
+    }
+  ]
+}

@@ -18,6 +18,7 @@ via GitHub et accèdent à leur VM (terminal web Guacamole, SSH, ou JupyterLab).
 | 6 | [Notation nbgrader](07-nbgrader-notation.md) | Créer → distribuer → collecter → noter (auto + manuel) |
 | 7 | [Snapshots & images](08-snapshots-images.md) | Construction des images Jupyter/nbgrader |
 | 8 | [Développement & exploitation](09-developpement-exploitation.md) | `dev.sh`, `.env`, services, dépannage |
+| 9 | [Observabilité](10-observabilite.md) | Grafana + Prometheus + Loki : métriques d'usage, logs, dashboards |
 
 ## Vue d'ensemble (30 secondes)
 

@@ -71,3 +71,10 @@ images/
 # Stray local build outputs
 /control_center/control_center
 /vm-pool-managers
+
+# Observabilité — secrets & données locales
+monitoring/.env
+monitoring/grafana/data/
+monitoring/prometheus/data/
+monitoring/loki/data/
+monitoring/docker-compose.override.yml
