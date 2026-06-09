@@ -76,13 +76,19 @@
   }
 
   // Aggregate stats for the dashboard (right panel).
-  let gradedCount = $derived(grades.length);
+  // "missing" = pas de soumission : exclu des stats (sinon faux 0 qui fausse la moyenne).
+  let submittedGrades = $derived(grades.filter(g => g.status !== 'missing'));
+  let gradedCount = $derived(submittedGrades.length);
+  let missingCount = $derived(grades.filter(g => g.status === 'missing').length);
   let manualCount = $derived(grades.filter(g => g.status === 'needs_manual_grade').length);
-  let avgScore = $derived(grades.length ? grades.reduce((a, g) => a + g.score, 0) / grades.length : 0);
+  let avgScore = $derived(submittedGrades.length ? submittedGrades.reduce((a, g) => a + g.score, 0) / submittedGrades.length : 0);
+  // Copie triée — NE PAS faire grades.sort() dans le {#each} (mute l'état pendant le rendu
+  // → erreur Svelte 5 state_unsafe_mutation qui gèle l'interactivité de la page).
+  let sortedGrades = $derived([...grades].sort((a, b) => b.score - a.score));
   // Score-percentage distribution in 5 buckets (0-20 … 80-100).
   let distribution = $derived.by(() => {
     const buckets = [0, 0, 0, 0, 0];
-    for (const g of grades) {
+    for (const g of submittedGrades) {
       if (g.max_score <= 0) continue;
       const pct = Math.max(0, Math.min(1, g.score / g.max_score));
       buckets[Math.min(4, Math.floor(pct * 5))]++;
@@ -289,8 +295,8 @@
   }
 
   function avg(): string {
-    if (!grades.length) return '—';
-    return (grades.reduce((a, g) => a + g.score, 0) / grades.length).toFixed(1);
+    if (!submittedGrades.length) return '—';
+    return (submittedGrades.reduce((a, g) => a + g.score, 0) / submittedGrades.length).toFixed(1);
   }
 </script>
 
@@ -511,21 +517,27 @@
               </p>
             </div>
           {:else}
-            {#each grades.sort((a, b) => b.score - a.score) as grade, i}
+            {#each sortedGrades as grade, i}
               <div class="px-4 py-2.5 border-b border-neutral-100 dark:border-neutral-800 last:border-0 animate-slide-right" style="animation-delay:{i*0.02}s">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-xs font-mono text-neutral-800 dark:text-neutral-200 truncate max-w-[60%]">{grade.student}</span>
-                  <span class="text-xs font-bold tabular-nums {scoreColor(grade)}">{grade.score.toFixed(1)}/{grade.max_score.toFixed(1)}</span>
+                  {#if grade.status === 'missing'}
+                    <span class="text-xs font-semibold text-neutral-400">Non rendu</span>
+                  {:else}
+                    <span class="text-xs font-bold tabular-nums {scoreColor(grade)}">{grade.score.toFixed(1)}/{grade.max_score.toFixed(1)}</span>
+                  {/if}
                 </div>
                 <div class="h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden mb-1.5">
                   <div
-                    class="h-full rounded-full {grade.max_score > 0 && grade.score/grade.max_score >= 0.8 ? 'bg-green-500' : grade.max_score > 0 && grade.score/grade.max_score >= 0.5 ? 'bg-amber-500' : 'bg-red-500'}"
-                    style="width:{grade.max_score > 0 ? Math.round(grade.score/grade.max_score*100) : 0}%"
+                    class="h-full rounded-full {grade.status === 'missing' ? 'bg-neutral-300 dark:bg-neutral-600' : grade.max_score > 0 && grade.score/grade.max_score >= 0.8 ? 'bg-green-500' : grade.max_score > 0 && grade.score/grade.max_score >= 0.5 ? 'bg-amber-500' : 'bg-red-500'}"
+                    style="width:{grade.status === 'missing' ? 0 : (grade.max_score > 0 ? Math.round(grade.score/grade.max_score*100) : 0)}%"
                   ></div>
                 </div>
                 <div class="flex items-center justify-between">
                   {#if grade.status === 'needs_manual_grade'}
                     <span class="text-[10px] text-amber-600 dark:text-amber-400">Révision manuelle requise</span>
+                  {:else if grade.status === 'missing'}
+                    <span class="text-[10px] text-neutral-400">En attente de soumission</span>
                   {:else}
                     <span></span>
                   {/if}

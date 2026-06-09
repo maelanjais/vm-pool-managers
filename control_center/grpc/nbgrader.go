@@ -469,6 +469,7 @@ func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 	iScore := idx("score")
 	iMax := idx("max_score")
 	iNMG := idx("needs_manual_grade")
+	iTimestamp := idx("timestamp") // vide => l'étudiant n'a rien rendu
 	if iStudent < 0 || iScore < 0 {
 		return grades
 	}
@@ -493,7 +494,10 @@ func parseCSVGrades(csv, assignment string) []NbgraderGrade {
 			fmt.Sscanf(cols[iMax], "%f", &g.MaxScore)
 		}
 		g.Status = "graded"
-		if iNMG >= 0 && len(cols) > iNMG && strings.TrimSpace(cols[iNMG]) == "True" {
+		// Pas de timestamp de soumission => l'étudiant n'a pas rendu (note non significative).
+		if iTimestamp >= 0 && len(cols) > iTimestamp && strings.TrimSpace(cols[iTimestamp]) == "" {
+			g.Status = "missing"
+		} else if iNMG >= 0 && len(cols) > iNMG && strings.TrimSpace(cols[iNMG]) == "True" {
 			g.Status = "needs_manual_grade"
 		}
 		grades = append(grades, g)

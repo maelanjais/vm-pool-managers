@@ -400,6 +400,11 @@ func handleMoodlePushGrades(w http.ResponseWriter, r *http.Request) {
 	pushed, skipped := 0, 0
 	var failures []string
 	for _, g := range grades {
+		// Ne pas pousser de note aux étudiants qui n'ont rien rendu.
+		if g.Status == "missing" {
+			skipped++
+			continue
+		}
 		uid := uidByEmail[strings.ToLower(g.Student)]
 		if uid == 0 {
 			skipped++
