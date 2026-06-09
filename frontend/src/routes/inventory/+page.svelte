@@ -89,14 +89,15 @@
     <div class="space-y-4">
       {#each pools as pool, pi}
         {@const activeVms = pool.vms.filter(v => v.activity_status !== 'idle')}
-        {@const readyVms = pool.vms.filter(v => v.status === 'ready')}
+        {@const connectedStudents = pool.vms.filter(v => v.activity_status !== 'idle' && v.student)}
+        {@const readyVms = pool.vms.filter(v => v.status === 'ready' && !v.is_instructor)}
         <div class="card overflow-hidden animate-fade-up" style="animation-delay:{pi*0.06}s">
           <div class="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
             <div>
               <h2 class="text-sm font-bold text-neutral-900">{pool.pool_id}</h2>
               <p class="text-xs text-neutral-400 mt-0.5">
-                <span class="{activeVms.length > 0 ? 'text-green-600 font-semibold' : 'text-neutral-400'}">
-                  {activeVms.length} étudiant{activeVms.length > 1 ? 's' : ''} connecté{activeVms.length > 1 ? 's' : ''}
+                <span class="{connectedStudents.length > 0 ? 'text-green-600 font-semibold' : 'text-neutral-400'}">
+                  {connectedStudents.length} étudiant{connectedStudents.length > 1 ? 's' : ''} connecté{connectedStudents.length > 1 ? 's' : ''}
                 </span>
                 · {readyVms.length} machine{readyVms.length > 1 ? 's' : ''} disponible{readyVms.length > 1 ? 's' : ''}
               </p>
@@ -114,41 +115,38 @@
           </div>
           <div class="divide-y divide-neutral-50">
             {#each pool.vms as vm}
-              <div class="flex items-center justify-between px-5 py-3 transition-colors hover:bg-neutral-50 dark:hover:bg-white/[0.03]">
+              {@const connected = vm.activity_status !== 'idle'}
+              {@const label = vm.student ? vm.student : connected ? 'Connexion personnelle (enseignant)' : vm.is_instructor ? 'VM enseignant (réservée)' : vm.status === 'ready' ? 'Machine libre' : 'Démarrage…'}
+              <div class="flex items-center justify-between gap-3 px-5 py-3 transition-colors {connected ? 'bg-green-50/70 dark:bg-green-900/10' : 'hover:bg-neutral-50 dark:hover:bg-white/[0.03]'}">
                 <div class="flex items-center gap-3 min-w-0">
-                  {#if vm.activity_status !== 'idle'}
-                    <span class="relative flex h-2 w-2 flex-shrink-0">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-70"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                  {:else}
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 {vm.status === 'ready' ? 'bg-neutral-300' : 'bg-amber-400'}"></span>
-                  {/if}
-                  <div class="min-w-0">
-                    {#if vm.activity_status !== 'idle'}
-                      {#if vm.student}
-                        <span class="text-sm font-medium text-neutral-800 dark:text-neutral-200">{vm.student}</span>
-                      {:else}
-                        <span class="text-sm font-medium text-primary-700 dark:text-primary-300">Connexion personnelle</span>
-                        <span class="text-xs text-neutral-400 ml-1">({vm.is_instructor ? 'enseignant' : 'prof/admin'})</span>
-                      {/if}
-                    {:else if vm.is_instructor}
-                      <span class="text-sm text-neutral-500">VM enseignant</span>
-                    {:else if vm.student}
-                      <span class="text-sm text-neutral-500">{vm.student}</span>
+                  <!-- Avatar : initiale de l'étudiant, ou icône ; vert vif si connecté -->
+                  <div class="relative w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-colors
+                    {connected ? 'bg-green-500 text-white shadow-sm' : vm.is_instructor ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300' : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-800'}">
+                    {#if vm.student}
+                      {vm.student.charAt(0).toUpperCase()}
+                    {:else if connected || vm.is_instructor}
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     {:else}
-                      <span class="text-sm text-neutral-400">Machine libre</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     {/if}
+                    {#if connected}
+                      <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-[#13151f]"></span>
+                    {/if}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold truncate {connected ? 'text-neutral-900 dark:text-white' : 'text-neutral-500 dark:text-neutral-400'}">{label}</p>
                     <p class="text-[11px] text-neutral-400 font-mono truncate">{vm.name}</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                  {#if vm.activity_status !== 'idle'}
-                    <span class="badge badge-ready">Connecté</span>
+                  {#if connected}
+                    <span class="badge badge-ready">● En ligne</span>
                   {:else if vm.student}
                     <span class="text-xs text-neutral-400">Hors ligne</span>
+                  {:else if vm.is_instructor}
+                    <span class="text-xs text-neutral-400">Réservée</span>
                   {:else if vm.status === 'ready'}
-                    <span class="text-xs text-neutral-400">En attente d'étudiant</span>
+                    <span class="text-xs text-neutral-400">En attente</span>
                   {:else}
                     <span class="text-xs text-amber-600">Démarrage…</span>
                   {/if}

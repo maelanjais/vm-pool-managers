@@ -586,11 +586,14 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 	}
 	defer instrClient.Close()
 
-	releaseInner := fmt.Sprintf("cd /home/jovyan/nbgrader && nbgrader release_assignment %s 2>&1 || nbgrader release %s 2>&1", assignment, assignment)
+	// Générer la version distribuable AVANT de distribuer : si l'enseignant a seulement
+	// créé/marqué les cellules sans cliquer "Generate", release/<a> serait vide.
+	// generate_assignment (peuple release/) puis release_assignment (ancien nom: release).
+	releaseInner := fmt.Sprintf("cd /home/jovyan/nbgrader && (nbgrader generate_assignment %s --force 2>&1 || nbgrader assign %s --force 2>&1); nbgrader release_assignment %s 2>&1 || nbgrader release %s 2>&1", assignment, assignment, assignment, assignment)
 	releaseOut, err := runSSHOutput(instrClient, dockerExec(releaseInner))
 	if err != nil {
 		log.Printf("[nbgrader] release command error: %v", err)
-		// Don't fail — the release dir may still exist from a previous run
+		// Don't fail — la version générée peut déjà exister dans release/.
 	}
 
 	// 2. Read released files from instructor VM
@@ -695,13 +698,27 @@ func handleNbgraderRelease(w http.ResponseWriter, r *http.Request) {
 			mu.Unlock()
 		}(student)
 	}
-	wg.Wait()
+	// Garde-fou : ne jamais bloquer le bouton indéfiniment, même si une VM ne répond pas.
+	done := make(chan struct{})
+	go func() { wg.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(90 * time.Second):
+		mu.Lock()
+		distErrors = append(distErrors, "délai dépassé : certaines machines n'ont pas répondu à temps")
+		mu.Unlock()
+	}
+
+	mu.Lock()
+	distributedSnapshot := distributed
+	errorsSnapshot := append([]string{}, distErrors...)
+	mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"status":      "ok",
-		"distributed": distributed,
-		"errors":      distErrors,
+		"distributed": distributedSnapshot,
+		"errors":      errorsSnapshot,
 		"output":      releaseOut,
 	})
 }
