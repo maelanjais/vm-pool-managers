@@ -254,15 +254,32 @@
             </thead>
             <tbody>
               {#each pool.vms as vm}
-                <tr class="transition-colors">
+                {@const connected = vm.activity_status !== 'idle'}
+                <tr class="transition-colors {connected && vm.student ? 'bg-green-50/60 dark:bg-green-900/10' : ''}">
                   <td>
-                    <div class="flex flex-col gap-0.5">
-                      <span class="font-mono text-xs text-neutral-700 dark:text-neutral-300">{vm.name}</span>
-                      {#if vm.is_instructor}
-                        <span class="text-[10px] font-semibold text-primary-600 dark:text-primary-400">● VM enseignant</span>
-                      {:else if vm.student}
-                        <span class="text-[10px] text-neutral-500">👤 {vm.student}</span>
-                      {/if}
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors
+                        {connected && vm.student ? 'bg-green-500 text-white shadow-sm' : vm.is_instructor ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300' : 'bg-neutral-100 text-neutral-400 dark:bg-neutral-800'}">
+                        {#if vm.student}
+                          {vm.student.charAt(0).toUpperCase()}
+                        {:else if vm.is_instructor || connected}
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        {:else}
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {/if}
+                      </div>
+                      <div class="flex flex-col gap-0.5 min-w-0">
+                        {#if vm.student}
+                          <span class="text-xs font-semibold truncate {connected ? 'text-green-700 dark:text-green-400' : 'text-neutral-700 dark:text-neutral-300'}">{vm.student}</span>
+                        {:else if vm.is_instructor}
+                          <span class="text-xs font-semibold text-primary-600 dark:text-primary-400">{connected ? 'Connexion personnelle' : 'VM enseignant'}</span>
+                        {:else if connected}
+                          <span class="text-xs font-semibold text-primary-600 dark:text-primary-400">Connexion personnelle</span>
+                        {:else}
+                          <span class="text-xs text-neutral-400">Machine libre</span>
+                        {/if}
+                        <span class="font-mono text-[10px] text-neutral-400 truncate">{vm.name}</span>
+                      </div>
                     </div>
                   </td>
                   <td><span class="font-mono text-xs text-neutral-700">{vm.ip}</span></td>
