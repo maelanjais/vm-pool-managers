@@ -38,7 +38,7 @@ func runLocalCmd(cmd string) error {
 }
 
 func RunSSHcmd(client *ssh.Client, cmd string) error {
-	log.Println("runSSHcmd: executing\n%s", cmd)
+	log.Printf("runSSHcmd: executing\n%s", cmd)
 	session, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("new ssh session failed: %w", err)
@@ -57,7 +57,7 @@ func RunSSHcmd(client *ssh.Client, cmd string) error {
 }
 
 func RunSSHcmdWithOutput(client *ssh.Client, cmd string) (string, error) {
-	log.Println("runSSHcmdWithOutput: executing\n%s", cmd)
+	log.Printf("runSSHcmdWithOutput: executing\n%s", cmd)
 	session, err := client.NewSession()
 	if err != nil {
 		return "", fmt.Errorf("failed to create ssh session: %w", err)

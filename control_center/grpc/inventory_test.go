@@ -2,7 +2,10 @@ package grpc
 
 import (
 	"control_center/models"
-	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -37,18 +40,38 @@ func TestProbeAppPort_Unreachable(t *testing.T) {
 }
 
 func TestProbeAppPort_Reachable(t *testing.T) {
-	// Start a TCP listener on a random port
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("failed to listen: %v", err)
-	}
-	defer ln.Close()
-	port := ln.Addr().(*net.TCPAddr).Port
+	// probeAppPort interroge /api/status de Jupyter : actif si connections>0 ou kernels>0.
+	// On simule un Jupyter avec une connexion ouverte.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/status" {
+			_, _ = w.Write([]byte(`{"connections":1,"kernels":1}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
 
-	vm := models.VMInstance{ActivityStatus: "idle", AppPort: port, IP: "127.0.0.1"}
+	u, _ := url.Parse(srv.URL)
+	port, _ := strconv.Atoi(u.Port())
+	vm := models.VMInstance{ActivityStatus: "idle", AppPort: port, IP: u.Hostname()}
 	probeAppPort(&vm)
 	if vm.ActivityStatus != "active" {
-		t.Errorf("expected active for reachable port, got %q", vm.ActivityStatus)
+		t.Errorf("attendu 'active' pour un Jupyter avec connexion, obtenu %q", vm.ActivityStatus)
+	}
+}
+
+func TestProbeAppPort_ReachableButIdle(t *testing.T) {
+	// Jupyter joignable mais aucune connexion/kernel => reste 'idle'.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"connections":0,"kernels":0}`))
+	}))
+	defer srv.Close()
+	u, _ := url.Parse(srv.URL)
+	port, _ := strconv.Atoi(u.Port())
+	vm := models.VMInstance{ActivityStatus: "idle", AppPort: port, IP: u.Hostname()}
+	probeAppPort(&vm)
+	if vm.ActivityStatus != "idle" {
+		t.Errorf("attendu 'idle' sans connexion, obtenu %q", vm.ActivityStatus)
 	}
 }
 

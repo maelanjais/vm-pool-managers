@@ -104,8 +104,9 @@ func Start_grpc(ctx context.Context) {
 	}
 
 	s := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(oidcmw.UnaryInterceptor(publicMethods)),
-		grpc.ChainStreamInterceptor(oidcmw.StreamInterceptor(publicMethods)),
+		// recovery en premier (outermost) : attrape les panics des autres intercepteurs et des handlers.
+		grpc.ChainUnaryInterceptor(recoveryUnaryInterceptor, oidcmw.UnaryInterceptor(publicMethods)),
+		grpc.ChainStreamInterceptor(recoveryStreamInterceptor, oidcmw.StreamInterceptor(publicMethods)),
 	)
 
 	conn, err := grpc.NewClient("localhost:50052",
@@ -191,7 +192,8 @@ func Start_grpc(ctx context.Context) {
 
 	httpServer := &http.Server{
 		Addr: ":50055",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// withRecovery : un panic dans un handler renvoie un 500 propre au lieu de couper la connexion.
+		Handler: withRecovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/api/") ||
 				strings.HasPrefix(r.URL.Path, "/auth/") ||
 				r.URL.Path == "/vm-registrar" ||
@@ -200,7 +202,7 @@ func Start_grpc(ctx context.Context) {
 				return
 			}
 			wrappedGrpc.ServeHTTP(w, r)
-		}),
+		})),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	go func() {

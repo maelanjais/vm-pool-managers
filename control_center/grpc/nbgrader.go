@@ -746,12 +746,14 @@ func scpWriteFile(client *ssh.Client, remotePath string, content []byte) error {
 	}
 	defer session.Close()
 
-	// Ensure parent directory exists
-	dir := remotePath[:strings.LastIndex(remotePath, "/")]
-	mkSession, _ := client.NewSession()
-	if mkSession != nil {
-		mkSession.Run(fmt.Sprintf("mkdir -p %q", dir))
-		mkSession.Close()
+	// Ensure parent directory exists (garde-fou : éviter un slice négatif si pas de "/").
+	if slash := strings.LastIndex(remotePath, "/"); slash > 0 {
+		dir := remotePath[:slash]
+		mkSession, _ := client.NewSession()
+		if mkSession != nil {
+			mkSession.Run(fmt.Sprintf("mkdir -p %q", dir))
+			mkSession.Close()
+		}
 	}
 
 	stdin, err := session.StdinPipe()
